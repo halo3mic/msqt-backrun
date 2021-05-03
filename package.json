@@ -1,0 +1,42 @@
+{
+  "name": "MSQT Backrun",
+  "version": "1.0.0",
+  "description": "Arbitrage opportunities across unilike pools with backrunning trades.",
+  "main": "server.js",
+  "scripts": {
+    "test": "npx hardhat test",
+    "msqt-forever": "forever server.js",
+    "msqt": "server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/archerdao/msqt-backrun"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@warren-bank/ethereumjs-tx-unsign": "^2.0.0",
+    "bignumber": "^1.1.0",
+    "bignumber.js": "^9.0.1",
+    "body-parser": "^1.19.0",
+    "csvtojson": "^2.0.10",
+    "dotenv": "^8.2.0",
+    "ethereumjs-tx": "^2.1.2",
+    "ethers": "^5.0.29",
+    "express": "^4.17.1",
+    "forever": "^3.0.4",
+    "fs": "^0.0.1-security",
+    "ganache-cli": "^6.12.2",
+    "path": "^0.12.7",
+    "prompt-sync": "^4.2.0"
+  },
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@openzeppelin/contracts": "^3.4.1",
+    "chai": "^4.3.4",
+    "ethereum-waffle": "^3.3.0",
+    "hardhat": "^2.2.0",
+    "hardhat-tracer": "^1.0.0-alpha.5"
+  }
+}
