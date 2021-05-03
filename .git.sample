@@ -1,0 +1,6 @@
+WS_ENDPOINT=""
+HTTP_ENDPOINT=""
+ARCHER_API_KEY=""
+
+PK1="<address>:<private_key>"
+
