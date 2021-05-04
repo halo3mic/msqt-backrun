@@ -12,8 +12,11 @@ const poolAddresses = instrMng.pools.map(p=>p.address)
 async function init() {
     let startGasPrice = await utils.fetchGasPrice(config.GAS_SPEED)
     await arbbot.init(provider, signer, startGasPrice)
+}
+
+function startListeners() {
     startGasUpdates()
-    startTradeUpdates()
+    startRequestUpdates()
     startListeningForBlocks()
 }
 
@@ -52,7 +55,7 @@ async function startGasUpdates() {
     }
 }
 
-async function startTradeUpdates() {
+async function startRequestUpdates() {
     const port = 8888  // TODO: Put in config
     const app = express()
     // Manual decoding of body
@@ -67,15 +70,34 @@ async function startTradeUpdates() {
             next()
         })
     })
-    app.post("/", async (req, res) => {
+    app.post("/submitRequest", async (req, res) => {
         let request = req.body
-        console.log(request)
-        arbbot.addBackrunRequest(request)
-        res.send('OK')
+        try {
+            if (utils.isHex(request)) {
+                arbbot.handleNewBackrunRequest(request)
+                res.send('OK')
+            } else {
+                res.send('Not in hex format')
+            }
+        } catch (e) {
+            console.log('Error occured while processing a request:', e.msg)
+            res.send(e.msg)
+        }
     })
     app.listen(port, () => {
         console.log(`Server running on port ${port}`)
     })
 }
 
-module.exports = { init }
+async function main() {
+    await init()
+    startListeners()
+}
+
+module.exports = { 
+    startRequestUpdates,
+    startListeners,
+    arbbot,
+    main, 
+    init, 
+}

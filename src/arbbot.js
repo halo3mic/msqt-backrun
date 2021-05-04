@@ -200,6 +200,10 @@ function updateGasPrice(gasPrice) {
     GAS_PRICE = gasPrice
 }
 
+function handleNewBackrunRequest(...args) {
+    return backrunner.handleNewBackrunRequest(...args)
+}
+
 function getBackrunRequests() {
     return backrunner.getBackrunRequests()
 }
@@ -223,6 +227,7 @@ module.exports = {
     updateReserves,
     init, 
     // Test visibility:
+    handleNewBackrunRequest,
     getBackrunRequests,
     getOppsForRequest,
     getReservePath, 

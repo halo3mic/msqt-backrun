@@ -6,8 +6,10 @@ const reservesMng = require('../src/reservesManager')
 const instrMng = require('../src/instrManager')
 const backrunner = require('../src/backrunner')
 const txMng = require('../src/txManager')
-const config = require('../src/config')
+const server = require('../src/server')
 const arbbot = require('../src/arbbot')
+const config = require('../src/config')
+const fetch = require('node-fetch')
 
 const ZERO = ethers.constants.Zero
 
@@ -63,6 +65,8 @@ describe('Handle new backrun request', () => {
 
 	beforeEach(() => {
 		trader = genNewAccount()
+		// Restart requests pool with each test
+		backrunner.cleanRequestsPool()
 	})
 
 	it('`decryptUnilikeTx` should return null if tx type is not supported (no data)', async () => {
@@ -123,6 +127,65 @@ describe('Handle new backrun request', () => {
 			deadline: parseInt(Date.now()/1e3)+300
 		}
 		expect(backrunner.enrichCallArgs(callArgs)).to.equal(undefined)
+	})
+
+	it('Signed transaction request to /submitRequest should be added to the local mempool', async () => {
+		// Make request and sign it
+		let txCallArgs = {
+			amountIn: ethers.utils.parseEther('100'),
+			amountOut: ZERO,
+			method: 'swapExactETHForTokens',
+			tknPath: [ assets.WETH, assets.DAI ],
+			router: unilikeRouters.uniswap, 
+			deadline: parseInt(Date.now()/1e3)+300
+		}
+		let UniswapRouter = new ethers.Contract(
+			txCallArgs.router,
+			ABIS['uniswapRouter'] 
+		)
+		let nextNonce = await signer.getTransactionCount()
+		nextNonce = nextNonce==0 ? 1 : nextNonce
+		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
+			txCallArgs.amountOut, 
+			txCallArgs.tknPath, 
+			signer.address,
+			txCallArgs.deadline, 
+			{ 
+				gasPrice: ZERO, 
+				value: txCallArgs.amountIn, 
+				nonce: nextNonce, 
+			}
+		)
+		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+		// Start arb bot and request listener
+		server.init()
+		server.startRequestUpdates()
+		// Submit signed tx request to the bot
+		let response = await fetch(
+			'http://localhost:8888/submitRequest', 
+			{
+				method: 'post',
+				body:    signedTradeTxRequest,
+				headers: { 'Content-Type': 'application/text' },
+			}
+		)
+		expect(await response.text()).to.equal('OK')
+		// Confirm the tx request was accepted
+		let backrunRequests = arbbot.getBackrunRequests()
+		expect(backrunRequests.length).to.equal(1)
+		expect(backrunRequests[0].signedRequest).to.equal(signedTradeTxRequest)
+	})
+
+	it('Request to /submitRequest in invalid format shall be rejected', async () => {
+		let response = await fetch(
+			'http://localhost:8888/submitRequest', 
+			{
+				method: 'post',
+				body:    'this is not a hex string',
+				headers: { 'Content-Type': 'application/text' },
+			}
+		)
+		expect(await response.text()).to.equal('Not in hex format')
 	})
 
 })

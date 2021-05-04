@@ -212,6 +212,15 @@ function sleep(ms) {
     return totalGas
 }
 
+/**
+ * Check wheter the string is in hex format starting with 0x
+ * @param {String} string
+ * @returns {Boolean}
+ */
+function isHex(string) {
+    return /^0x[0-9A-Fa-f]+$/.test(string)
+}
+
 module.exports = { 
     submitBatchesToArcher, 
     estimateGasAmount,
@@ -221,5 +230,6 @@ module.exports = {
     submitSimulationRequest,
     logToCsv, 
     jsonRPCRequest,
-    sleep
+    sleep, 
+    isHex
 }
