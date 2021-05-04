@@ -201,7 +201,7 @@ describe('Virtual reserves', () => {
 		expect(pool1DiffTkn2).to.equal(pool2DiffTkn2)
 	})
 
-	it('Virutal reserves match the state of the pool after the execution', async () => {
+	it('Virutal reserves match the state of the pool after the execution - ETH tip from input amount', async () => {
 		// Create transaction for uniswap trade and sign it
 		let txCallArgs = {
 			amountIn: ethers.utils.parseEther('10'),
@@ -267,6 +267,232 @@ describe('Virtual reserves', () => {
 			virtualReserves['P0009']['T0000']
 		)
 		expect(newReserves['P0009']['T0006']).to.equal(
+			virtualReserves['P0009']['T0006']
+		)
+	})
+
+	it('Virutal reserves match the state of the pool after the execution - ETH tip not from input amount', async () => {
+		// Create transaction for uniswap trade and sign it
+		let txCallArgs = {
+			amountIn: ethers.utils.parseEther('10'),
+			amountOut: ZERO,
+			method: 'swapExactTokensForTokensWithTipAmount',
+			tknPath: [ assets.WETH, assets.DAI ],
+			router: unilikeRouters.uniswap, 
+			deadline: parseInt(Date.now()/1e3)+3000, 
+			tipAmount: ethers.utils.parseUnits('0.1')
+		}
+		// Prepare for trade - wrap eth; approve weth (execute before checking the nonce)
+		let WETH = new ethers.Contract(assets.WETH, config.ABIS['weth'], ethers.provider)
+		await WETH.connect(signer).deposit({value: txCallArgs.amountIn, gasPrice: ZERO})
+		expect(await WETH.balanceOf(signer.address)).to.equal(txCallArgs.amountIn)
+		await WETH.connect(signer).approve(config.ROUTERS.ARCHERSWAP, ethers.constants.MaxUint256)
+		expect(await WETH.allowance(signer.address, config.ROUTERS.ARCHERSWAP)).to.equal(ethers.constants.MaxUint256)
+		let archerswapRouter = new ethers.Contract(
+			config.ROUTERS.ARCHERSWAP,
+			ABIS['archerswapRouter'] 
+		)
+		let nextNonce = await signer.getTransactionCount()
+		let tradeTxRequest = await archerswapRouter.populateTransaction[txCallArgs.method](
+			txCallArgs.router,
+			[
+				txCallArgs.amountIn,
+				txCallArgs.amountOut, 
+				txCallArgs.tknPath, 
+				signer.address,
+				txCallArgs.deadline, 
+			],
+			{ 
+				gasPrice: ZERO, 
+				value: txCallArgs.tipAmount, 
+				nonce: nextNonce, 
+				gasLimit: 1000000
+			}
+		)
+		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+		// Handle new request
+		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
+		// Check that request was put in backrun requests pool
+		let backrunRequests = backrunner.getBackrunRequests()
+		expect(backrunRequests.length).to.equal(1)
+		let pathsToCheck = [ 'I000311', 'I001605' ].map(
+			instrMng.getPathById
+		)
+		await arbbot.init(
+			ethers.provider, 
+			signer, 
+			ethers.utils.parseUnits('20', 'gwei'), 
+			pathsToCheck
+		)
+		// Get virtual reserves
+		let { virtualReserves } = backrunner.getVirtualReserves(
+			arbbot.getReserves(), 
+			backrunRequests[0].callArgs
+		)
+
+	})
+
+	it('Virutal reserves match the state of the pool after the execution - Token tip from output amount (non-trade pool)', async () => {
+		// Trade gets through pools WETH-DAI & DAI-USDC and tip gets taken from pool WETH-USDC
+
+		// Create transaction for uniswap trade and sign it
+		let txCallArgs = {
+			amountIn: ethers.utils.parseEther('10'),
+			amountOut: ZERO,
+			method: 'swapExactTokensForTokensWithTipPct',
+			tknPath: [ assets.WETH, assets.DAI, assets.USDC ],
+			router: unilikeRouters.uniswap, 
+			deadline: parseInt(Date.now()/1e3)+3000, 
+			tipPct: (0.5*1000000).toString(),
+			pathToEth: [ assets.USDC, assets.WETH ],
+			minEth: ZERO
+		}
+		// Prepare for trade - wrap eth; approve weth (execute before checking the nonce)
+		let WETH = new ethers.Contract(assets.WETH, config.ABIS['weth'], ethers.provider)
+		await expect(() => WETH.connect(signer).deposit({value: txCallArgs.amountIn, gasPrice: ZERO}))
+  			.to.changeTokenBalance(WETH, signer, txCallArgs.amountIn)
+		await WETH.connect(signer).approve(config.ROUTERS.ARCHERSWAP, ethers.constants.MaxUint256)
+		expect(await WETH.allowance(signer.address, config.ROUTERS.ARCHERSWAP)).to.equal(ethers.constants.MaxUint256)
+		let archerswapRouter = new ethers.Contract(
+			config.ROUTERS.ARCHERSWAP,
+			ABIS['archerswapRouter'] 
+		)
+		let nextNonce = await signer.getTransactionCount()
+		let tradeTxRequest = await archerswapRouter.populateTransaction[txCallArgs.method](
+			txCallArgs.router,
+			[
+				txCallArgs.amountIn,
+				txCallArgs.amountOut, 
+				txCallArgs.tknPath, 
+				signer.address,
+				txCallArgs.deadline, 
+			],
+			txCallArgs.pathToEth,
+			txCallArgs.minEth,
+			txCallArgs.tipPct,
+			{ 
+				gasPrice: ZERO, 
+				value: txCallArgs.tipAmount, 
+				nonce: nextNonce, 
+				gasLimit: 1000000
+			}
+		)
+		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+		// Handle new request
+		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
+		// Check that request was put in backrun requests pool
+		let backrunRequests = backrunner.getBackrunRequests()
+		expect(backrunRequests.length).to.equal(1)
+		let pathsToCheck = [ 'I000311', 'I001605' ].map(
+			instrMng.getPathById
+		)
+		await arbbot.init(
+			ethers.provider, 
+			signer, 
+			ethers.utils.parseUnits('20', 'gwei'), 
+			pathsToCheck
+		)
+		// Get virtual reserves
+		let { virtualReserves } = backrunner.getVirtualReserves(
+			arbbot.getReserves(), 
+			backrunRequests[0].callArgs
+		)
+		// Execute transaction
+		await signer.sendTransaction(tradeTxRequest).then(
+			async response => response.wait()
+		)
+		let poolAffected = instrMng.getPoolById('P0009')
+		// Compare reserves after execution to the prediction
+		let newReserves = await reservesMng.fetchReserves(poolAffected).then(
+			r => Object.fromEntries([r])
+		)
+		expect(newReserves['P0009']['T0000']).to.equal(
+			virtualReserves['P0009']['T0000']
+		)
+		expect(newReserves['P0009']['T0006']).to.equal(
+			virtualReserves['P0009']['T0006']
+		)
+	})
+
+	it('Virutal reserves dont1`t match the state of the pool after the execution - Token tip from output amount (trade pool)', async () => {
+		// Trade gets through pools WETH-DAI and tip gets taken through the same pool
+		
+		// Create transaction for uniswap trade and sign it
+		let txCallArgs = {
+			amountIn: ethers.utils.parseEther('10'),
+			amountOut: ZERO,
+			method: 'swapExactTokensForTokensWithTipPct',
+			tknPath: [ assets.WETH, assets.DAI ],
+			router: unilikeRouters.uniswap, 
+			deadline: parseInt(Date.now()/1e3)+3000, 
+			tipPct: (0.5*1e6).toString(),
+			pathToEth: [ assets.DAI, assets.WETH ],
+			minEth: ZERO
+		}
+		// Prepare for trade - wrap eth; approve weth (execute before checking the nonce)
+		let WETH = new ethers.Contract(assets.WETH, config.ABIS['weth'], ethers.provider)
+		await expect(() => WETH.connect(signer).deposit({value: txCallArgs.amountIn, gasPrice: ZERO}))
+  			.to.changeTokenBalance(WETH, signer, txCallArgs.amountIn)
+		await WETH.connect(signer).approve(config.ROUTERS.ARCHERSWAP, ethers.constants.MaxUint256)
+		expect(await WETH.allowance(signer.address, config.ROUTERS.ARCHERSWAP)).to.equal(ethers.constants.MaxUint256)
+		let archerswapRouter = new ethers.Contract(
+			config.ROUTERS.ARCHERSWAP,
+			ABIS['archerswapRouter'] 
+		)
+		let nextNonce = await signer.getTransactionCount()
+		let tradeTxRequest = await archerswapRouter.populateTransaction[txCallArgs.method](
+			txCallArgs.router,
+			[
+				txCallArgs.amountIn,
+				txCallArgs.amountOut, 
+				txCallArgs.tknPath, 
+				signer.address,
+				txCallArgs.deadline, 
+			],
+			txCallArgs.pathToEth,
+			txCallArgs.minEth,
+			txCallArgs.tipPct,
+			{ 
+				gasPrice: ZERO, 
+				value: txCallArgs.tipAmount, 
+				nonce: nextNonce, 
+				gasLimit: 1000000
+			}
+		)
+		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+		// Handle new request
+		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
+		// Check that request was put in backrun requests pool
+		let backrunRequests = backrunner.getBackrunRequests()
+		expect(backrunRequests.length).to.equal(1)
+		let pathsToCheck = [ 'I000311', 'I001605' ].map(
+			instrMng.getPathById
+		)
+		await arbbot.init(
+			ethers.provider, 
+			signer, 
+			ethers.utils.parseUnits('20', 'gwei'), 
+			pathsToCheck
+		)
+		// Get virtual reserves
+		let { virtualReserves, amountOut } = backrunner.getVirtualReserves(
+			arbbot.getReserves(), 
+			backrunRequests[0].callArgs
+		)
+		// Execute transaction
+		await signer.sendTransaction(tradeTxRequest).then(
+			async response => response.wait()
+		)
+		let poolAffected = instrMng.getPoolById('P0009')
+		// Compare reserves after execution to the prediction
+		let newReserves = await reservesMng.fetchReserves(poolAffected).then(
+			r => Object.fromEntries([r])
+		)
+		// TODO: Instead of negation calulate expected reserves based on the tip pct
+		expect(newReserves['P0009']['T0000']).to.not.equal(
+			virtualReserves['P0009']['T0000']
+		)
+		expect(newReserves['P0009']['T0006']).to.not.equal(
 			virtualReserves['P0009']['T0006']
 		)
 	})
