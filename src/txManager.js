@@ -88,7 +88,7 @@ async function formQueryTx(opp) {
     return { calldata, inputLocs }
 }
 
-async function sendBatches(bundles, targetBlock, debugOnly=false) {
+async function getArcherSendBundleParams(bundles, targetBlock) {
     const ethCall = {
         method: 'eth_sendBundle', 
         params: [
@@ -101,11 +101,15 @@ async function sendBatches(bundles, targetBlock, debugOnly=false) {
     let inter = ethers.utils.id(JSON.stringify(ethCall))
     let signature = await SIGNER.signMessage(inter)
     let senderAddress = SIGNER.address
-    let archerApiParams = {
+    return {
         ethCall, 
         signature, 
         senderAddress
     }
+}
+
+async function sendBatches(bundles, targetBlock, debugOnly=false) {
+    let archerApiParams = await getArcherSendBundleParams(bundles, targetBlock)
     if (debugOnly) {
         return archerApiParams
     }
@@ -320,6 +324,7 @@ async function executeBatches(opps, blockNumber) {
 }
 
 module.exports = { 
+    getArcherSendBundleParams,
     executeOpportunity,
     executeOpportunity,
     buildDispatcherTx, 

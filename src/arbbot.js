@@ -112,7 +112,7 @@ function getPathsForUpdatedPools(orgPaths, updatedPools) {
     })
 }
 
-function getOppsForRequest(pathsToCheck, virtualReserves) {
+function getOppsForVirtualReserves(pathsToCheck, virtualReserves) {
     let profitableOpps = []
     pathsToCheck.forEach(path => {
         let opp = arbForPath(path, virtualReserves)
@@ -123,36 +123,40 @@ function getOppsForRequest(pathsToCheck, virtualReserves) {
     return profitableOpps
 }
 
-function getOpps(requestsToCheck) {
-    let opps = []
-    requestsToCheck.forEach(request => {
-        // Filter only for paths with pools involved in backrun tx
-        let pathsWithBackrun = getPathsForUpdatedPools(
-            paths, 
-            request.callArgs.poolIds
-        )
-        let { virtualReserves, amountOut} = backrunner.getVirtualReserves(
-            RESERVES, 
-            request.callArgs
-        )
-        if (amountOut.gte(request.callArgs.amountOutMin)) {
-            let _opps = getOppsForRequest(pathsWithBackrun, virtualReserves)
-            opps = _opps.map(opp => {
-                opp.backrunTxs = [ request.signedRequest ]
-                return opp
-            })
-            opps = [ ...opps, ..._opps ]
-        }
-    })
-    return opps
+function getOppsForRequest(request) {
+    // Filter only for paths with pools involved in backrun tx
+    let pathsWithBackrun = getPathsForUpdatedPools(
+        paths, 
+        request.callArgs.poolIds
+    )
+    let { virtualReserves, amountOut} = backrunner.getVirtualReserves(
+        RESERVES, 
+        request.callArgs
+    )
+    if (amountOut.gte(request.callArgs.amountOutMin)) {
+        let opps = getOppsForVirtualReserves(pathsWithBackrun, virtualReserves)
+        // Add backruned-tx to the opportunity object
+        opps = opps.map(opp => {
+            opp.backrunTxs = [ request.signedRequest ]
+            return opp
+        })
+        return opps
+    }
+    return []
 }
 
 async function handleBlockUpdate(blockNumber) {
     // let backrunRequests = backrunner.getBackrunRequests()
     let backrunRequests = await backrunner.getValidBackrunRequests()
-    let opps = getOpps(backrunRequests)
+    let opps = []
+    backrunRequests.forEach(request => {
+        let newOpps = getOppsForRequest(request)
+        opps = [ ...newOpps, ...opps ]
+    })
     if (opps.length>0) {
         opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
+        // Handle only the best opportunity found 
+        // TODO: In the future handle more opportunities at once
         await handleOpp(blockNumber, [opps[0]])
     }
 }
@@ -165,6 +169,28 @@ async function handleOpp(blockNumber, opps) {
     }
     catch (error) {
         console.log(`${blockNumber} | ${Date.now()} | Failed to send tx ${error.message}`)
+    }
+}
+
+async function backrunRequest(rawTxRequest, blockNumber) {
+    // TODO: Make helper functions in backrunner for this
+    // backrunner.isValidRequest(request)
+    let request = backrunner.decryptRawTx(rawTxRequest)
+    request.callArgs = backrunner.enrichCallArgs(request.callArgs)
+    let opps = getOppsForRequest(request)
+    if (opps.length>0) {
+        opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
+        // Get bundles only for the best opportunity found 
+        // TODO: In the future handle more opportunities at once
+        let bundle = await txManager.oppsToBundle([ opps[0] ], blockNumber)
+        let archerApiParams = await txManager.getArcherSendBundleParams(
+            bundle, 
+            blockNumber+1
+        )
+        return archerApiParams
+    } else {
+        console.log('No opportunities found')
+        return {}
     }
 }
 
@@ -211,7 +237,6 @@ function getBackrunRequests() {
 function _setReserves(newReserves) {
     RESERVES = newReserves
     paths = instrMng.filterPaths(paths, newReserves)
-
 }
 
 function _setBotBal(newBal) {
@@ -223,19 +248,20 @@ function _setProvider(provider) {
 }
 
 module.exports = {
+    handleNewBackrunRequest,
     handleBlockUpdate,
+    backrunRequest,
     updateReserves,
     init, 
     // Test visibility:
-    handleNewBackrunRequest,
+    getOppsForVirtualReserves,
     getBackrunRequests,
     getOppsForRequest,
     getReservePath, 
     updateGasPrice,
     _setReserves,
-    _setBotBal,
     getReserves,
+    _setBotBal,
     arbForPath, 
     handleOpp,
-    getOpps,
 }

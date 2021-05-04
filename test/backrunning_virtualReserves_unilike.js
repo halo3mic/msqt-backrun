@@ -315,62 +315,9 @@ describe('Virtual reserves', () => {
 			dummyReserves, 
 			backrunRequests[0].callArgs
 		)
-		let oppsWithVirtualReserves = arbbot.getOppsForRequest(pathsToCheck, virtualReserves)
-		let oppsWithoutVirtualReserves = arbbot.getOppsForRequest(pathsToCheck, {})
+		let oppsWithVirtualReserves = arbbot.getOppsForVirtualReserves(pathsToCheck, virtualReserves)
+		let oppsWithoutVirtualReserves = arbbot.getOppsForVirtualReserves(pathsToCheck, {})
 		expect(oppsWithVirtualReserves.length).to.gte(oppsWithoutVirtualReserves.length)
-	})
-
-	it('Bot should find same or more opps with virtual reserves (local)', async () => {
-		// Create transaction for uniswap trade and sign it
-		let txCallArgs = {
-			amountIn: ethers.utils.parseEther('1000'),
-			amountOut: ZERO,
-			method: 'swapExactETHForTokens',
-			tknPath: [ assets.WETH, assets.DAI ],
-			router: unilikeRouters.uniswap, 
-			deadline: parseInt(Date.now()/1e3)+300
-		}
-		let UniswapRouter = new ethers.Contract(
-			txCallArgs.router,
-			ABIS['uniswapRouter'] 
-		)
-		let nextNonce = await signer.getTransactionCount()
-		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
-			txCallArgs.amountOut, 
-			txCallArgs.tknPath, 
-			signer.address,
-			txCallArgs.deadline, 
-			{ 
-				gasPrice: ZERO, 
-				value: txCallArgs.amountIn, 
-				nonce: nextNonce, 
-				gasLimit: 300000, 
-				from: signer.address
-			}
-		)
-		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
-		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
-		// Check that request was put in backrun requests pool
-		let backrunRequests = backrunner.getBackrunRequests()
-		expect(backrunRequests.length).to.equal(1)
-		let pathsToCheck = [ 'I000311', 'I001605' ].map(
-			instrMng.getPathById
-		)
-		await arbbot.init(
-			ethers.provider, 
-			signer, 
-			ethers.utils.parseUnits('20', 'gwei'), 
-			pathsToCheck
-		)
-		let { virtualReserves } = backrunner.getVirtualReserves(
-			arbbot.getReserves(), 
-			backrunRequests[0].callArgs
-		)
-		let oppsWithVirtualReserves = arbbot.getOppsForRequest(pathsToCheck, virtualReserves)
-		let oppsWithoutVirtualReserves = arbbot.getOppsForRequest(pathsToCheck, {})
-		expect(oppsWithVirtualReserves.length).to.gte(oppsWithoutVirtualReserves.length)
-
 	})
 
 	it('Handle block update (live)', async () => {

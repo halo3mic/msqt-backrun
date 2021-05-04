@@ -104,7 +104,7 @@ describe('Execution', () => {
 			ethers.utils.parseUnits('20', 'gwei'), 
 			pathsToCheck
 		)
-		let opps = arbbot.getOpps(backrunRequests)
+		let opps = backrunRequests.map(arbbot.getOppsForRequest).flat()
 		expect(opps.length).to.above(0)
 		opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
 		let blockNumber = await ethers.provider.getBlockNumber()
@@ -118,8 +118,7 @@ describe('Execution', () => {
 		await signer.sendTransaction(tradeTxRequest1).then(
 			async response => response.wait()
 		)
-		// Execute arb tx
-		
+		// Execute arb tx	
 		console.log('Executing arb tx')
 		let latestBlock = await ethers.provider.getBlock('latest')  // Miner stays the same!
 		let dispatcherBalBefore = await ethers.provider.getBalance(config.DISPATCHER)

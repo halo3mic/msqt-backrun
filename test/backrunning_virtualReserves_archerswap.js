@@ -335,8 +335,8 @@ describe('Virtual reserves', () => {
 			dummyReserves, 
 			backrunRequests[0].callArgs
 		)
-		let oppsWithVirtualReserves = arbbot.getOppsForRequest(pathsToCheck, virtualReserves)
-		let oppsWithoutVirtualReserves = arbbot.getOppsForRequest(pathsToCheck, {})
+		let oppsWithVirtualReserves = arbbot.getOppsForVirtualReserves(pathsToCheck, virtualReserves)
+		let oppsWithoutVirtualReserves = arbbot.getOppsForVirtualReserves(pathsToCheck, {})
 		expect(oppsWithVirtualReserves.length).to.gte(oppsWithoutVirtualReserves.length)
 	})
 
