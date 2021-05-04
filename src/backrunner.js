@@ -26,28 +26,13 @@ function getSignerFromRawTx(rawTx) {
     )
 }
 
-function decryptUnilikeTx(tx) {
+function decryptUnilikeTx(txRequest) {
     let abi = new ethers.utils.Interface(ABIS['uniswapRouter'])
     try {
-        let txDescription = abi.parseTransaction(tx)
-        return txDescription
+        var txDescription = abi.parseTransaction(txRequest)  // !This determines if transaction fits a type
     } catch {
-        throw new Error('Transaction is not uniswap-like')
-    }
-}
-
-function decryptRawTx(rawTx) {
-    let txHash = ethers.utils.keccak256(rawTx)
-    let sender = getSignerFromRawTx(rawTx)
-    let txRequest = unsign(rawTx).txData
-    txRequest.to = ethers.utils.getAddress(txRequest.to)
-    txRequest.nonce = parseInt(txRequest.nonce, 16)
-    let txDescription
-    try {
-        txDescription = decryptUnilikeTx(txRequest)
-    } catch {
-        console.log('Transaction is not uniswap-like')
-        return
+        console.log('Transaction type is not supported')
+        return null
     }
     let callArgs = {
         amountIn: BigNumber.from(txDescription.args.amountIn || txRequest.value),
@@ -57,7 +42,49 @@ function decryptRawTx(rawTx) {
         router: txRequest.to,
         deadline: txDescription.args.deadline.toNumber()
     }
-    return { txRequest, callArgs, txHash, sender }
+    return callArgs
+}
+
+function decryptArcherswapTx(txRequest) {
+    let abi = new ethers.utils.Interface(ABIS['archerswapRouter'])
+    try {
+        var txDescription = abi.parseTransaction(txRequest)  // !This determines if transaction fits a type
+    } catch {
+        return null
+    }
+    // let tipFromAmountIn = ethers.constants.Zero  // Amount that gets subtracted from amountIn
+    // if (txDescription.args.tipPct) {
+    //     tipFromAmountIn = txDescription.args.trade.amountIn.mul(txDescription.args.tipPct)
+    // } else if (txDescription.args.tipAmount) {
+    //     tipFromAmountIn = txDescription.args.tipAmount
+    // }
+    // let amountIn = BigNumber.from(txDescription.args.trade.amountIn || txRequest.value).sub(tipFromAmountIn)
+    let callArgs = {
+        amountIn: BigNumber.from(txDescription.args.trade.amountIn || txRequest.value),
+        amountOut: txDescription.args.trade.amountOut,
+        method: txDescription.functionFragment.name,
+        tknPath: txDescription.args.trade.path,
+        router: txDescription.args.router,
+        deadline: txDescription.args.trade.deadline.toNumber()
+    }
+    return callArgs
+}
+
+function decryptRawTx(rawTx) {
+    let txHash = ethers.utils.keccak256(rawTx)
+    let sender = getSignerFromRawTx(rawTx)
+    let txRequest = unsign(rawTx).txData
+    txRequest.to = ethers.utils.getAddress(txRequest.to)
+    txRequest.nonce = parseInt(txRequest.nonce, 16)
+
+    let decryptMethods = [ decryptUnilikeTx, decryptArcherswapTx ]
+    for (let decryptMethod of decryptMethods) {
+        let callArgs = decryptMethod(txRequest)
+        if (callArgs) {
+            return { txRequest, callArgs, txHash, sender }
+        }
+    }
+    return { txRequest, txHash, sender }
 }
 
 function findPoolsForTknPath(dexName, tknPath) {
@@ -227,6 +254,7 @@ function removeRequestFromPool(hash) {
 module.exports = { 
     handleNewBackrunRequest, 
     getValidBackrunRequests,
+    decryptArcherswapTx,
     getBackrunRequests,
     getVirtualReserves,
     cleanRequestsPool,

@@ -51,12 +51,12 @@ describe('Handle new backrun request', () => {
 		genNewAccount = await makeAccountGen()
 		signer = ethers.Wallet.createRandom().connect(ethers.provider)
 		botOperator = new ethers.Wallet(config.PRIVATE_KEY, ethers.provider)
-
-		
 	})
 
 	beforeEach(() => {
 		trader = genNewAccount()
+		// Restart requests pool with each test
+		backrunner.cleanRequestsPool()
 	})
 
 	it('Uniswaplike signed tx should be decrypted', async () => {
@@ -88,7 +88,9 @@ describe('Handle new backrun request', () => {
 		)
 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
 		// Decrypt signed transaction
-		let { txRequest, callArgs, sender } = backrunner.decryptRawTx(signedTradeTxRequest)
+		let response = backrunner.decryptRawTx(signedTradeTxRequest)
+		expect(response.callArgs).to.not.be.undefined  // Expect reponse
+		let { txRequest, callArgs, sender } = response
 		// Compare passed call arguments to decrypted ones
 		expect(callArgs.amountIn).to.equal(txCallArgs.amountIn)
 		expect(callArgs.amountOut).to.equal(txCallArgs.amountOut)
@@ -102,68 +104,6 @@ describe('Handle new backrun request', () => {
 		expect(txRequest.value).to.equal(tradeTxRequest.value)
 		expect(sender).to.equal(signer.address)
 		
-	})
-
-	it('`decryptUnilikeTx` should revert if tx is not unilike (no data)', async () => {
-		let tx = {
-			to: ethers.constants.AddressZero, 
-			from: trader.address
-		}
-		// Decrypt signed transaction
-		expect(() => backrunner.decryptUnilikeTx(tx)).to.throw(
-			'Transaction is not uniswap-like'
-		)
-	})
-
-	it('Enrich call-args with supported pool for two tokens', () => {
-		let callArgs = {
-			amountIn: ethers.utils.parseEther('10'),
-			amountOut: ethers.utils.parseUnits('30000', 6),
-			method: 'swapExactETHForTokens',
-			tknPath: [ assets.WETH, assets.USDC ],
-			router: unilikeRouters.uniswap, 
-			deadline: parseInt(Date.now()/1e3)+300
-		}
-		let enrichedArgs = backrunner.enrichCallArgs(callArgs)
-		expect(enrichedArgs.tknPath.join()).to.equal(['T0000', 'T0003'].join())
-		expect(enrichedArgs.poolAddresses.join()).to.equal([
-			'0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc'
-		].join())
-		expect(enrichedArgs.poolIds.join()).to.equal(['P0003'].join())
-		expect(enrichedArgs.amountIn).to.equal(ethers.utils.parseUnits('10'))
-		expect(enrichedArgs.amountOutMin).to.equal(ethers.utils.parseUnits('30000'))
-	})
-
-	it('Enrich call-args with supported pool for three tokens', () => {
-		let callArgs = {
-			amountIn: ethers.utils.parseEther('10'),
-			amountOut: ethers.utils.parseUnits('3000', 6),
-			method: 'swapExactETHForTokens',
-			tknPath: [ assets.WETH, assets.DAI, assets.USDC ],
-			router: unilikeRouters.uniswap, 
-			deadline: parseInt(Date.now()/1e3)+300
-		}
-		let enrichedArgs = backrunner.enrichCallArgs(callArgs)
-		expect(enrichedArgs.tknPath.join()).to.equal(['T0000', 'T0006', 'T0003'].join())
-		expect(enrichedArgs.poolAddresses.join()).to.equal([
-			'0xA478c2975Ab1Ea89e8196811F51A7B7Ade33eB11',
-			'0xAE461cA67B15dc8dc81CE7615e0320dA1A9aB8D5' 
-		].join())
-		expect(enrichedArgs.poolIds.join()).to.equal(['P0009', 'P00249'].join())
-		expect(enrichedArgs.amountIn).to.equal(ethers.utils.parseUnits('10'))
-		expect(enrichedArgs.amountOutMin).to.equal(ethers.utils.parseUnits('3000'))
-	})
-
-	it('Enrich call-args with unsupported pool for two tokens should return `undefined`', () => {
-		let callArgs = {
-			amountIn: ethers.utils.parseEther('100'),
-			amountOut: ZERO,
-			method: 'swapExactTokensForTokens',
-			tknPath: [ assets.LINK, assets.DAI ],
-			router: unilikeRouters.uniswap, 
-			deadline: parseInt(Date.now()/1e3)+300
-		}
-		expect(backrunner.enrichCallArgs(callArgs)).to.equal(undefined)
 	})
 
 	it('`handleNewBackrunRequest` should decrypt, enrich and save request', async () => {
@@ -195,14 +135,15 @@ describe('Handle new backrun request', () => {
 		)
 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
 		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
-		let [ backrunRequest1 ] = backrunner.getBackrunRequests()
-		let { callArgs, txRequest, sender } = backrunRequest1
+		let backrunRequests = backrunner.getBackrunRequests()
+		expect(backrunRequests.length).to.equal(1)
+		let { callArgs, txRequest, sender } = backrunRequests[0]
 		// Compare passed call arguments to decrypted ones
 		expect(callArgs.amountIn).to.equal(txCallArgs.amountIn)
 		expect(callArgs.amountOut).to.equal(txCallArgs.amountOutMin)
 		expect(callArgs.tknPath.join('')).to.equal(['T0000', 'T0006'].join(''))
 		expect(callArgs.deadline).to.equal(txCallArgs.deadline)
-		// // Compare passed transaction parameters to unsigned ones
+		// Compare passed transaction parameters to unsigned ones
 		expect(txRequest.to).to.equal(tradeTxRequest.to)
 		expect(txRequest.nonce).to.equal(tradeTxRequest.nonce)
 		expect(txRequest.value).to.equal(tradeTxRequest.value)
