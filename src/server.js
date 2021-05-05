@@ -58,7 +58,7 @@ async function startGasUpdates() {
 }
 
 async function startRequestUpdates() {
-    const port = 8888  // TODO: Put in config
+    const port = parseInt(process.env.PORT)
     const app = express()
     // Manual decoding of body
     app.use (function(req, res, next) {
