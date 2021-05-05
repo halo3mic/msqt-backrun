@@ -8,7 +8,7 @@ const backrunner = require('./backrunner')
 const txManager = require('./txManager')
 const config = require('./config')
 const utils = require('./utils')
-const math = require('./math')
+const math = require('./unimath')
 
 // Global vars
 let GAS_PRICE
