@@ -7,9 +7,9 @@ const ethers = require('ethers')
  * @returns {ethers.providers.WebSocketProvider}
  */
 function setWsProvider() {
-    if (!config.WS_ENDPOINT) {
-        console.log('Websocket uri is not provided')
-    }
+	if (!config.WS_ENDPOINT) {
+		console.log('No Websockets endpoint detected!')
+	}
     let _wsProvider = new ethers.providers.WebSocketProvider(
       config.WS_ENDPOINT,
       config.NETWORK
@@ -25,13 +25,22 @@ function setWsProvider() {
  * @returns {ethers.providers.JsonRpcProvider}
  */
 function setHttpProvider() {
-    if (!config.RPC_ENDPOINT) {
-        console.log('RPC url is not provided')
-    }
+	if (!config.RPC_ENDPOINT) {
+		console.log('No RPC endpoint detected!')
+	}
     return new ethers.providers.JsonRpcProvider(
       config.RPC_ENDPOINT,
       config.NETWORK
     )
+}
+
+function setWallet() {
+    if (!config.PRIVATE_KEY) {
+		console.log('No private key detected!')
+	}
+	let wallet = new ethers.Wallet(config.PRIVATE_KEY)
+	console.log(`Using acount ${wallet.address} as signer.`)
+	return wallet
 }
 
 /**
@@ -47,24 +56,17 @@ function setGancheProvider(params) {
     return new ethers.providers.Web3Provider(ganache.provider(params))
 }
 
-function setSigner(provider) {
-    if (config.PRIVATE_KEY) {
-      let signer = new ethers.Wallet(config.PRIVATE_KEY, provider)
-      console.log(`Using acount ${signer.address} as signer.`)
-      return signer
-    }
-}
-
 function init() {
+	let wallet = setWallet()
 	let httpProvider = setHttpProvider()
 	let wsProvider = setWsProvider()
 	let http = {
-		signer: setSigner(httpProvider), 
+		signer: wallet ? wallet.connect(httpProvider): null, 
 		endpoint: config.RPC_ENDPOINT,
 		provider: httpProvider,
 	}
 	let ws = {
-		signer: setSigner(wsProvider), 
+		signer: wallet ? wallet.connect(wsProvider): null, 
 		endpoint: config.WS_ENDPOINT,
 		provider: wsProvider,
 	}
