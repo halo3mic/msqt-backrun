@@ -27,9 +27,25 @@ function getSignerFromRawTx(rawTx) {
 }
 
 function decryptUnilikeTx(txRequest) {
+    let supportedMethods = [
+        'swapExactTokensForTokens',
+        'swapTokensForExactTokens',
+        'swapExactETHForTokens',
+        'swapTokensForExactETH',
+        'swapExactTokensForETH',
+        'swapETHForExactTokens',
+        'swapExactTokensForTokensSupportingFeeOnTransferTokens',
+        'swapExactETHForTokensSupportingFeeOnTransferTokens',
+        'swapExactTokensForETHSupportingFeeOnTransferTokens'
+    ] // TODO: Add to config
     let abi = new ethers.utils.Interface(ABIS['uniswapRouter'])
+    // Try/catch determines if transaction fits a type
     try {
-        var txDescription = abi.parseTransaction(txRequest)  // !This determines if transaction fits a type
+        var txDescription = abi.parseTransaction(txRequest)
+        /// Exit if method is not supported
+        if (!supportedMethods.includes(txDescription.functionFragment.name)) {
+            return null
+        }
     } catch {
         console.log('Transaction type is not supported')
         return null
@@ -47,18 +63,38 @@ function decryptUnilikeTx(txRequest) {
 
 function decryptArcherswapTx(txRequest) {
     let abi = new ethers.utils.Interface(ABIS['archerswapRouter'])
+    let supportedMethods = [
+        'swapExactTokensForETHAndTipAmount',
+        'swapExactTokensForETHWithPermitAndTipAmount',
+        'swapExactTokensForETHAndTipPct',
+        'swapExactTokensForETHWithPermitAndTipPct',
+        'swapTokensForExactETHAndTipAmount',
+        'swapTokensForExactETHWithPermitAndTipAmount',
+        'swapTokensForExactETHAndTipPct',
+        'swapTokensForExactETHWithPermitAndTipPct',
+        'swapExactETHForTokensWithTipAmount',
+        'swapExactETHForTokensWithTipPct',
+        'swapETHForExactTokensWithTipAmount',
+        'swapETHForExactTokensWithTipPct',
+        'swapExactTokensForTokensWithTipAmount',
+        'swapExactTokensForTokensWithPermitAndTipAmount',
+        'swapExactTokensForTokensWithTipPct',
+        'swapExactTokensForTokensWithPermitAndTipPct',
+        'swapTokensForExactTokensWithTipAmount',
+        'swapTokensForExactTokensWithPermitAndTipAmount',
+        'swapTokensForExactTokensWithTipPct',
+        'swapTokensForExactTokensWithPermitAndTipPct',
+    ] // TODO: Add to config
+    // Try/catch determines if transaction fits a type
     try {
-        var txDescription = abi.parseTransaction(txRequest)  // !This determines if transaction fits a type
+        var txDescription = abi.parseTransaction(txRequest)
+        /// Exit if method is not supported
+        if (!supportedMethods.includes(txDescription.functionFragment.name)) {
+            return null
+        }
     } catch {
         return null
     }
-    // let tipFromAmountIn = ethers.constants.Zero  // Amount that gets subtracted from amountIn
-    // if (txDescription.args.tipPct) {
-    //     tipFromAmountIn = txDescription.args.trade.amountIn.mul(txDescription.args.tipPct)
-    // } else if (txDescription.args.tipAmount) {
-    //     tipFromAmountIn = txDescription.args.tipAmount
-    // }
-    // let amountIn = BigNumber.from(txDescription.args.trade.amountIn || txRequest.value).sub(tipFromAmountIn)
     let callArgs = {
         amountIn: BigNumber.from(txDescription.args.trade.amountIn || txRequest.value),
         amountOut: txDescription.args.trade.amountOut,

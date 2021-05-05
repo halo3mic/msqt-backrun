@@ -229,6 +229,36 @@ describe('Handle new backrun request', () => {
 		expect(backrunner.decryptArcherswapTx(tx)).to.be.null
 	})
 
+	it('ArcherSwap signed tx with unsupported method should not be decrypted', async () => {
+		// Create transaction for uniswap trade and sign it
+		let archerswapRouter = new ethers.Contract(
+			config.ROUTERS.ARCHERSWAP,
+			ABIS['archerswapRouter']
+		)
+		let nextNonce = await signer.getTransactionCount()
+		nextNonce = nextNonce==0 ? 1 : nextNonce
+		let tradeTxRequest = await archerswapRouter.populateTransaction['addLiquidityAndTipAmount'](
+			unilikeRouters.uniswap,
+			[
+				assets.DAI, 
+				assets.WETH, 
+				ethers.utils.parseUnits('1'), 
+				ethers.utils.parseUnits('3500'), 
+				ZERO, 
+				ZERO, 
+				signer.address, 
+				parseInt(Date.now()/1e3)+300
+			],
+			{ value: ethers.utils.parseEther('0.2') }
+		)
+		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+		// Decrypt signed transaction
+		let response = backrunner.decryptRawTx(signedTradeTxRequest)
+		let { callArgs } = response
+		// Compare passed call arguments to decrypted ones
+		expect(callArgs).to.be.undefined
+	})
+
 	it('`handleNewBackrunRequest` should decrypt, enrich and save request', async () => {
 		// Create transaction for uniswap trade and sign it
 		let txCallArgs = {

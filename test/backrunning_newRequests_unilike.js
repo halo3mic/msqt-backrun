@@ -59,7 +59,7 @@ describe('Handle new backrun request', () => {
 		backrunner.cleanRequestsPool()
 	})
 
-	it('Uniswaplike signed tx should be decrypted', async () => {
+	it('Uniswaplike signed tx with supported method should be decrypted', async () => {
 		// Create transaction for uniswap trade and sign it
 		let txCallArgs = {
 			amountIn: ethers.utils.parseEther('100'),
@@ -104,6 +104,32 @@ describe('Handle new backrun request', () => {
 		expect(txRequest.value).to.equal(tradeTxRequest.value)
 		expect(sender).to.equal(signer.address)
 		
+	})
+
+	it('Uniswaplike signed tx with unsupported method should not be decrypted', async () => {
+		// Create transaction for uniswap trade and sign it
+		let UniswapRouter = new ethers.Contract(
+			unilikeRouters.uniswap,
+			ABIS['uniswapRouter'] 
+		)
+		let nextNonce = await signer.getTransactionCount()
+		nextNonce = nextNonce==0 ? 1 : nextNonce
+		let tradeTxRequest = await UniswapRouter.populateTransaction['addLiquidity'](
+			assets.DAI, 
+			assets.WETH, 
+			ethers.utils.parseUnits('1'), 
+			ethers.utils.parseUnits('3500'), 
+			ZERO, 
+			ZERO, 
+			signer.address, 
+			parseInt(Date.now()/1e3)+300
+		)
+		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+		// Decrypt signed transaction
+		let response = backrunner.decryptRawTx(signedTradeTxRequest)
+		let { callArgs } = response
+		// Compare passed call arguments to decrypted ones
+		expect(callArgs).to.be.undefined
 	})
 
 	it('`handleNewBackrunRequest` should decrypt, enrich and save request', async () => {
