@@ -64,24 +64,15 @@ class Uniswap {
     async formTradeTx(inputAmount, tokenPath, outputAmount=0, timeShift=300) {
         const baseAddress = tokensMap[config.BASE_ASSET].address
         const tradeTimeout = Math.round((Date.now()/1000) + timeShift)
-        let tx
         if (tokenPath[0]==baseAddress) {
-            tx = await this.routerContract.populateTransaction.swapExactETHForTokens(
+            var tx = await this.routerContract.populateTransaction.swapExactETHForTokens(
                 outputAmount, 
                 tokenPath, 
                 DISPATCHER, 
                 tradeTimeout
             )
-        // } else if (tokenPath[tokenPath.length-1]==baseAddress) {
-        //     tx = await this.routerContract.populateTransaction.swapExactTokensForETH(
-        //         inputAmount,
-        //         outputAmount, 
-        //         tokenPath, 
-        //         DISPATCHER, 
-        //         tradeTimeout
-        //     )
         } else {
-            tx = await this.routerContract.populateTransaction.swapExactTokensForTokens(
+            var tx = await this.routerContract.populateTransaction.swapExactTokensForTokens(
                 inputAmount,
                 outputAmount, 
                 tokenPath, 
@@ -89,7 +80,6 @@ class Uniswap {
                 tradeTimeout
             )
         }
-        
         // If input location is 0 input amount needs to be injected on the call
         const inputLocs = inputAmount==ethers.constants.Zero && tokenPath[0]!=baseAddress ? [56] : []   // In bytes
 
@@ -169,56 +159,12 @@ class Sashimiswap extends Uniswap {
     }
 }
 
-class Mooniswap {
-
-    constructor(provider) {
-        this.provider = provider
-    }
-
-
-    async fetchReserves(pool, tkns) {
-        const poolContract = new ethers.Contract(
-            pool.address, 
-            ABIS['mooniswapPool'], 
-            this.provider
-        )
-        const [ tkn1, tkn2 ] = tkns
-        const bal1 = await poolContract.getBalanceForAddition(
-            tokensMap[tkn1].address
-        ).then(
-            r => parseFloat(ethers.utils.formatUnits(
-                r, 
-                tokensMap[tkn1].decimal
-            ))
-        )
-        const bal2 = await poolContract.getBalanceForRemoval(
-            tokensMap[tkn2].address
-        ).then(
-            r => parseFloat(ethers.utils.formatUnits(
-                r, 
-                tokensMap[tkn2].decimal
-            ))
-        )
-        const reserves = {}
-        reserves[tkn1] = {
-            balance: bal1,
-            weight: 50
-        }
-        reserves[tkn2] = {
-            balance: bal2, 
-            weight: 50
-        }
-        return reserves
-    }
-}
-
 function getExchanges(provider) {
     return {
         uniswap: new Uniswap(provider), 
         sushiswap: new Sushiswap(provider), 
         linkswap: new Linkswap(provider), 
         crypto: new Crypto(provider), 
-        mooniswap: new Mooniswap(provider),        
         polyient: new Polyient(provider), 
         whiteswap: new Whiteswap(provider), 
         sashimiswap: new Sashimiswap(provider)
