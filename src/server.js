@@ -6,22 +6,26 @@ const arbbot = require('./arbbot')
 const config = require('./config')
 const utils = require('./utils')
 
-let gasLoopTimeout = 2000  // TODO: Move to config
-const poolAddresses = instrMng.pools.map(p=>p.address) // ! NOTE: Not filtered
-let BLOCK_HEIGHT = 0
+let BLOCK_HEIGHT
+let POOLS  // Addresses for pools that are used by valid paths
 
 async function init() {
     let startGasPrice = await utils.fetchGasPrice(config.GAS_SPEED)
     await arbbot.init(provider, signer, startGasPrice)
     BLOCK_HEIGHT = await provider.getBlockNumber()
+    POOLS = instrMng.getPoolAddressesForPaths(arbbot.getPaths())
 }
 
 function startListeners() {
-    startGasUpdates()
-    startRequestUpdates()
     startListeningForBlocks()
+    startRequestUpdates()
+    startGasUpdates()
 }
 
+/**
+ * Listen for new blocks
+ * Update reserves if Sync logs are found
+ */
 function startListeningForBlocks() {
     const filter = { topics: [ config.UNISWAP_SYNC_TOPIC ] }
     provider.on('block', async (blockNumber) => {
@@ -31,7 +35,7 @@ function startListeningForBlocks() {
             let logs = await provider.getLogs(filter)
             let changedPools = []
             logs.forEach(l => {
-                if (poolAddresses.includes(l.address)) {
+                if (POOLS.includes(l.address)) {
                     arbbot.updateReserves(l.address, l.data)
                     let poolId = instrMng.getPoolByAddress(l.address).id
                     if (changedPools.includes(poolId)) {
@@ -44,16 +48,20 @@ function startListeningForBlocks() {
     })
 }
 
+
 async function startGasUpdates() {
     while (1) {
         try {
-            let gasPrice = await utils.fetchGasPrice(config.GAS_SPEED)
-            arbbot.updateGasPrice(gasPrice)
+            arbbot.updateGasPrice(
+                await utils.fetchGasPrice(config.GAS_SPEED)
+            )
         } catch (e) {
             console.log('Failed to fetch gas price')
             console.log(e)
+        } finally {
+            // Wait to avoid reaching request limit for API
+            utils.sleep(config.GAS_UPDATE_PERIOD)
         }
-        utils.sleep(gasLoopTimeout)
     }
 }
 
@@ -99,7 +107,6 @@ async function startRequestUpdates() {
         try {
             if (utils.isHex(request)) {
                 let result = await arbbot.backrunRequest(request, BLOCK_HEIGHT)
-                // TODO: Add request id
                 res.json({
                     status: 1,
                     msg: 'OK',

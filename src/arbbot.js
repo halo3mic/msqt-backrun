@@ -300,6 +300,7 @@ module.exports = {
     handleBlockUpdate,
     backrunRequest,
     updateReserves,
+    getPaths,
     init, 
     // Test visibility:
     getOppsForVirtualReserves,

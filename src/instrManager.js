@@ -20,6 +20,12 @@ let _tokenByAddress = Object.fromEntries(
     tokens.map(t => [ t.address, t ])
 )
 
+function getPoolAddressesForPaths(_paths) {
+    return _paths.map(path => path.pools.map(
+        poolId => _poolById[poolId].address
+    )).flat()
+}
+
 /**
  * Set paths that fit configuration
  */
@@ -80,6 +86,7 @@ module.exports = {
     getTokenById: id => _tokenById[id],
     getTokenByAddress: id => _tokenByAddress[id],
     filterPathsWithEmptyPool,
+    getPoolAddressesForPaths,
     filterPathsByConfig,
     filterPathsByPools,
     tokens,

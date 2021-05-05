@@ -64,6 +64,7 @@ ARCHER_REQUESTS_LOGS_PATH='./logs/requests.csv'
 GAS_PRICE_LIMIT = ethers.utils.parseUnits('2000', 'gwei')
 GAS_PRICE_PRCT_EXTRA = ethers.BigNumber.from('100')  // 100% 
 MAX_GAS_COST = ethers.utils.parseEther('0.01')
+GAS_UPDATE_PERIOD = 2000 // ms
 GAS_LIMIT = "1200000"
 GAS_SPEED = 'rapid'
 
@@ -97,6 +98,7 @@ module.exports = {
     ARCHER_BATCHES_URL,
     DISPATCHER_TIPPER,
     TIPPER_SHARE_RATE,
+    GAS_UPDATE_PERIOD,
     BLACKLISTED_TKNS,
     GAS_PRICE_LIMIT,
     MAX_BUNDLE_SIZE,
