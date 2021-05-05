@@ -11,6 +11,7 @@ let PROVIDER
 async function init(provider, paths) {
     PROVIDER = provider
     RESERVES = await fetchReservesForPaths(paths)
+    return RESERVES
 }
 
 function updateReserves(poolAddress, reservesBytes) {

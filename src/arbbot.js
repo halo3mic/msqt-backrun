@@ -1,3 +1,5 @@
+// TODO: Update dispatcher balance multiple times
+
 const ethers = require('ethers')
 
 const reservesManager = require('./reservesManager')
@@ -8,25 +10,41 @@ const config = require('./config')
 const utils = require('./utils')
 const math = require('./math')
 
-let BOT_BAL
-let RESERVES
-let PROVIDER
+// Global vars
 let GAS_PRICE
-let PREV_OPP_PATHS = []  // Paths that had opportunities in the last block
-let { paths } = instrMng
+let PROVIDER
+let RESERVES
+let BOT_BAL
+let PATHS
 
-
+/**
+ * Initializes arbbbot 
+ * @param {Provider} provider 
+ * @param {Signer} signer 
+ * @param {BigNumber} startGasPrice Gas price bot uses before getting updates
+ * @param {Array} whitelistedPaths If passed only whitelisted paths will be arbbed
+ */
 async function init(provider, signer, startGasPrice, whitelistedPaths) {
-    paths = whitelistedPaths || instrMng.filterPaths(paths)
-    await reservesManager.init(provider, paths)
+    let _paths = instrMng.paths  // Unfiltered paths
+    _paths = whitelistedPaths || instrMng.filterPathsByConfig(_paths)
+    let _reserves = await reservesManager.init(provider, _paths)
     txManager.init(provider, signer)
     backrunner.init(provider)
-    _setReserves(reservesManager.getAllReserves())  // Load reserves
-    _setBotBal(await provider.getBalance(config.DISPATCHER))
+    _setReserves(_reserves)  // Load reserves
     _setProvider(provider)
-    updateGasPrice(startGasPrice)
+    await updateBotBal()  // Query dispatcher balance
+    updateGasPrice(startGasPrice)  // Init gas price before the first update
+    _paths = instrMng.filterPathsWithEmptyPool(_paths, _reserves)
+    _paths = getPathsWithGasEstimate(_paths)
+    _setPaths(_paths)
 }
 
+/**
+ * Returns pool reserves in order of the arbitrage path
+ * @param {Array} path Token sequence of an arbitrage opportunity
+ * @param {Object} virtualReserves Hypotetical reserves from a backrun trade 
+ * @returns {Array}
+ */
 function getReservePath(path, virtualReserves) {
     let reservePath = []
     for (let i=0; i<path.pools.length; i++) {
@@ -40,22 +58,27 @@ function getReservePath(path, virtualReserves) {
     return reservePath
 }
 
+/**
+ * Check if there exists arbitrage opportunity for the path and returns it
+ * @param {Object} path Path checked for an arbitrage opportunity
+ * @param {Object} virtualReserves Hypotetical reserves from a backrun trade 
+ * @returns {Object}
+ */
 function arbForPath(path, virtualReserves) {
     let reservePath = getReservePath(path, virtualReserves)
     let optimalIn = math.getOptimalAmountForPath(reservePath)
     if (optimalIn.gt("0")) {
-        let avlAmount = BOT_BAL.sub(config.MAX_GAS_COST)
-        let inputAmount = avlAmount.gt(optimalIn) ? optimalIn : avlAmount
+        let avlAmount = BOT_BAL.sub(config.MAX_GAS_COST)  // TODO: Not relevant anymore with tipjar
+        let inputAmount = avlAmount.gt(optimalIn) ? optimalIn : BOT_BAL
         let swapAmounts = math.getAmountsByReserves(inputAmount, reservePath)
         let amountOut = swapAmounts[swapAmounts.length-1]
         let grossProfit = amountOut.sub(inputAmount)
-        let gasAmount = utils.estimateGasAmount(path.pools.length)
         let gasPrice = process.argv.includes('--zero-gas') ? ethers.constants.Zero : GAS_PRICE
-        let gasCost= gasPrice.mul(gasAmount)
+        let gasCost= gasPrice.mul(path.gasAmount)
         let netProfit = grossProfit.sub(gasCost)
         if (netProfit.gt(config.MIN_PROFIT)) {
             return {
-                gasAmount: gasAmount,
+                gasAmount: path.gasAmount,
                 netProfit: netProfit,
                 gasPrice: gasPrice,
                 grossProfit,
@@ -67,77 +90,41 @@ function arbForPath(path, virtualReserves) {
     }   
 }
 
-// async function handleBlockUpdate(blockNumber, updatedPools) {
-//     let profitableOpps = arbForPools(updatedPools)
-//     if (profitableOpps.length>0) {
-//         profitableOpps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
-//         let parallelOpps = getParallelOpps(profitableOpps)
-//         await handleOpp(blockNumber, parallelOpps)
-//     }
-//     PREV_OPP_PATHS = profitableOpps.map(opp => opp.path.id)
-//     console.log(`Processing time: ${Date.now()-START_TIME} ms`)
-//     BOT_BAL = await PROVIDER.getBalance(config.DISPATCHER);
-//     console.log(`${blockNumber} | BALANCE: ${ethers.utils.formatUnits(BOT_BAL)}`);
-// }
-
-// /**
-//  * Return an array of opportunities which pools won't overlap
-//  * @param {Object} opp - Parameters describing opportunity
-//  * @returns {Array}
-//  */
-//  function getParallelOpps(opps) {
-//     let parallelOpps = []
-//     let poolsUsed = []
-//     opps.forEach(opp => {
-//         let pathIncludesUsedPool = opp.path.pools.filter(poolId => {
-//             return poolsUsed.includes(poolId)
-//         }).length > 0
-//         if (!pathIncludesUsedPool && parallelOpps.length<config.MAX_BUNDLE_SIZE) {
-//             poolsUsed = [...poolsUsed, ...opp.path.pools]
-//             parallelOpps.push(opp)
-//         }
-//     })
-//     return parallelOpps
-// }
-
-function getPathsForUpdatedPools(orgPaths, updatedPools) {
-    return orgPaths.filter(path => {
-        // Only inlude the paths using a pool that was updated 
-        let includesUpdatedPool = path.pools.filter(pool => {
-            return updatedPools.includes(pool)
-        }).length > 0
-        // Include the paths from prev block again (opp might still exist)
-        let pathInPrevOpps = PREV_OPP_PATHS.includes(path.id)
-        return includesUpdatedPool || pathInPrevOpps
-    })
-}
-
+/**
+ * Return opportunities from paths for virtual reserves
+ * @param {Array} pathsToCheck The paths to be checked
+ * @param {Object} virtualReserves Hypotetical reserves from a backrun trade  
+ * @returns {Array}
+ */
 function getOppsForVirtualReserves(pathsToCheck, virtualReserves) {
     let profitableOpps = []
     pathsToCheck.forEach(path => {
         let opp = arbForPath(path, virtualReserves)
-        if (opp) {
-            profitableOpps.push(opp)
-        }
+        if (opp) { profitableOpps.push(opp) }
     })
     return profitableOpps
 }
 
-function getOppsForRequest(request) {
+/**
+ * Return opportunities that arise if request is executed
+ * @param {Object} txRequest 
+ * @returns {Array}
+ */
+function getOppsForRequest(txRequest) {
     // Filter only for paths with pools involved in backrun tx
-    let pathsWithBackrun = getPathsForUpdatedPools(
-        paths, 
-        request.callArgs.poolIds
+    let pathsWithBackrun = instrMng.filterPathsByPools(
+        getPaths(), 
+        txRequest.callArgs.poolIds
     )
     let { virtualReserves, amountOut} = backrunner.getVirtualReserves(
         RESERVES, 
-        request.callArgs
+        txRequest.callArgs
     )
-    if (amountOut.gte(request.callArgs.amountOutMin)) {
+    if (amountOut.gte(txRequest.callArgs.amountOutMin)) {
         let opps = getOppsForVirtualReserves(pathsWithBackrun, virtualReserves)
         // Add backruned-tx to the opportunity object
         opps = opps.map(opp => {
-            opp.backrunTxs = [ request.signedRequest ]
+            opp.backrunTxs = [ txRequest.signedRequest ]
             return opp
         })
         return opps
@@ -145,36 +132,49 @@ function getOppsForRequest(request) {
     return []
 }
 
+/**
+ * Find opportunities for backrunning the tx requests and execute the best
+ * @param {Integer} blockNumber 
+ */
 async function handleBlockUpdate(blockNumber) {
-    // let backrunRequests = backrunner.getBackrunRequests()
+    // Get only valid requests
+    // TODO: Should this be done in the bot? Call `getBackrunRequests` instead?
     let backrunRequests = await backrunner.getValidBackrunRequests()
-    let opps = []
-    backrunRequests.forEach(request => {
-        let newOpps = getOppsForRequest(request)
-        opps = [ ...newOpps, ...opps ]
-    })
+    // Get all opportunities for all requets and put them in a single array
+    let opps = backrunRequests.map(request => getOppsForRequest(request)).flat()
     if (opps.length>0) {
         opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
-        // Handle only the best opportunity found 
+        // Execute only the best opportunity found 
         // TODO: In the future handle more opportunities at once
         await handleOpp(blockNumber, [opps[0]])
     }
+    await updateBotBal()
 }
 
+/**
+ * Execute opportunity and log it to console and to storage
+ * @param {Integer} blockNumber 
+ * @param {Array} opps 
+ */
 async function handleOpp(blockNumber, opps) {
     try {
         let response = await txManager.executeBatches(opps, blockNumber)
         opps.forEach(printOpportunityInfo)
-        console.log(response)
+        console.log(response)  // Response from Archer
     }
     catch (error) {
-        console.log(`${blockNumber} | ${Date.now()} | Failed to send tx ${error.message}`)
+        console.log(`${blockNumber} | ${Date.now()} | Failed execute opportunity ${error.message}`)
     }
 }
 
+/**
+ * Return bundle, signature and address for backrunning a tx request
+ * @param {String} rawTxRequest 
+ * @param {Integer} blockNumber 
+ * @returns {Object}
+ */
 async function backrunRequest(rawTxRequest, blockNumber) {
-    // TODO: Make helper functions in backrunner for this
-    // backrunner.isValidRequest(request)
+    // TODO: Need to check request validity? backrunner.isValidRequest(request)
     let request = backrunner.decryptRawTx(rawTxRequest)
     request.callArgs = backrunner.enrichCallArgs(request.callArgs)
     let opps = getOppsForRequest(request)
@@ -194,6 +194,7 @@ async function backrunRequest(rawTxRequest, blockNumber) {
     }
 }
 
+// TODO: Add to utils?
 /**
  * Log opportunity details and tx status to console
  * @param {Object} opp - Parameters describing opportunity
@@ -214,16 +215,23 @@ async function backrunRequest(rawTxRequest, blockNumber) {
     console.log('^'.repeat(50))
 }
 
-function getReserves() {
-    return RESERVES
+/**
+ * Returns ETH balance of dispatcher contract
+ * @returns {BigNumber}
+ */
+ async function getDispatcherBalance() {
+    return PROVIDER.getBalance(config.DISPATCHER)
 }
 
-function updateReserves(...args) {
-    return reservesManager.updateReserves(...args)
-}
-
-function updateGasPrice(gasPrice) {
-    GAS_PRICE = gasPrice
+/**
+ * Return paths with gas estimate
+ * @param {Array} paths The paths for which gas should be estimated
+ */
+function getPathsWithGasEstimate(paths) {
+    return paths.map(path => {
+        path.gasAmount = utils.estimateGasAmount(path.pools.length)
+        return path
+    })
 }
 
 function handleNewBackrunRequest(...args) {
@@ -234,18 +242,58 @@ function getBackrunRequests() {
     return backrunner.getBackrunRequests()
 }
 
-function _setReserves(newReserves) {
-    RESERVES = newReserves
-    paths = instrMng.filterPaths(paths, newReserves)
+function updateReserves(...args) {
+    return reservesManager.updateReserves(...args)
 }
 
-function _setBotBal(newBal) {
-    BOT_BAL = newBal
+function updateGasPrice(gasPrice) {
+    GAS_PRICE = gasPrice
+}
+
+function _setReserves(newReserves) {
+    RESERVES = newReserves
 }
 
 function _setProvider(provider) {
     PROVIDER = provider
 }
+
+async function updateBotBal() {
+    BOT_BAL = await getDispatcherBalance()
+}
+
+function _setPaths(paths) {
+    PATHS = paths
+}
+
+function getReserves() {
+    return RESERVES
+}
+
+function getPaths() {
+    return PATHS
+}
+
+// TODO: Move in utils?
+// /**
+//  * Return an array of opportunities which pools won't overlap
+//  * @param {Array} opps Collection of opportunities 
+//  * @returns {Array}
+//  */
+//  function getParallelOpps(opps) {
+//     let parallelOpps = []
+//     let poolsUsed = []
+//     opps.forEach(opp => {
+//         let pathIncludesUsedPool = opp.path.pools.filter(poolId => {
+//             return poolsUsed.includes(poolId)
+//         }).length > 0
+//         if (!pathIncludesUsedPool) {
+//             poolsUsed = [...poolsUsed, ...opp.path.pools]
+//             parallelOpps.push(opp)
+//         }
+//     })
+//     return parallelOpps
+// }
 
 module.exports = {
     handleNewBackrunRequest,
@@ -261,7 +309,6 @@ module.exports = {
     updateGasPrice,
     _setReserves,
     getReserves,
-    _setBotBal,
+    updateBotBal,
     arbForPath, 
-    handleOpp,
 }

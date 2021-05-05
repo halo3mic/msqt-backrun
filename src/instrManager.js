@@ -20,14 +20,6 @@ let _tokenByAddress = Object.fromEntries(
     tokens.map(t => [ t.address, t ])
 )
 
-function filterPaths(_paths, _reserves) {
-    _paths = filterPathsByConfig(_paths)
-    if (_reserves) {
-        _paths = filterPathsWithEmptyPool(_paths, _reserves)
-    }
-    return _paths
-}
-
 /**
  * Set paths that fit configuration
  */
@@ -37,7 +29,7 @@ function filterPaths(_paths, _reserves) {
             path.tkns.filter(t => config.BLACKLISTED_TKNS.includes(t)).length == 0 &&  // Exclude blacklisted tokens
             path.tkns[0] == config.BASE_ASSET &&  // Paths needs to start in BASE-ASSET
             path.tkns[path.tkns.length - 1] == config.BASE_ASSET &&  // Path needs to end in BASE-ASSET
-            path.enabled &&  
+            path.enabled &&  // Path needs to be enabled
             config.MAX_HOPS >= path.pools.length - 1  // Filter path length
         )
     })
@@ -66,8 +58,20 @@ function filterPaths(_paths, _reserves) {
     return _paths
 }
 
-filterPaths(paths)  // Init
-
+/**
+ * Return only paths that include at least one of the pools
+ * @param {Array} paths The paths that should be checked
+ * @param {Array} updatedPools The pool addresses that have reserves changed
+ * @returns 
+ */
+ function filterPathsByPools(paths, pools) {
+    return paths.filter(path => {
+        // Only inlude the paths using a pool that was updated 
+        return path.pools.filter(pool => {
+            return pools.includes(pool)
+        }).length > 0
+    })
+}
 
 module.exports = {
     getPathById: id => _pathById[id], 
@@ -75,7 +79,9 @@ module.exports = {
     getPoolByAddress: id => _poolByAddress[id], 
     getTokenById: id => _tokenById[id],
     getTokenByAddress: id => _tokenByAddress[id],
-    filterPaths,
+    filterPathsWithEmptyPool,
+    filterPathsByConfig,
+    filterPathsByPools,
     tokens,
     pools, 
     paths, 

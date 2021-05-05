@@ -306,7 +306,7 @@ describe('Virtual reserves', () => {
 			},
 		}
 		arbbot._setReserves(dummyReserves)
-		arbbot._setBotBal(ethers.utils.parseUnits('100'))
+		arbbot.updateBotBal(ethers.utils.parseUnits('100'))
 		arbbot.updateGasPrice(ethers.utils.parseUnits('20', 'gwei'))
 		let pathsToCheck = [ 'I000311', 'I001605' ].map(
 			instrMng.getPathById
