@@ -7,7 +7,7 @@ const config = require('./config')
 const utils = require('./utils')
 
 let gasLoopTimeout = 2000  // TODO: Move to config
-const poolAddresses = instrMng.pools.map(p=>p.address)
+const poolAddresses = instrMng.pools.map(p=>p.address) // ! NOTE: Not filtered
 let BLOCK_HEIGHT = 0
 
 async function init() {
@@ -39,10 +39,7 @@ function startListeningForBlocks() {
                     }
                 }
             })
-            backrunRequests.forEach(request => {
-                console.log('Checking a request')
-                arbbot.handleMempoolUpdate(request, changedPools)
-            })
+            arbbot.handleBlockUpdate(blockNumber)
         }
     })
 }
