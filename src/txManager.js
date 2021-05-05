@@ -16,7 +16,7 @@ function init(provider, signer) {
 
 async function unwrapEth(amount) {
     let address = config.CLIENT
-    let wethContract = new ethers.Contract(address, config.ABIS['weth'])
+    let wethContract = new ethers.Contract(address, config.abis['weth'])
     return wethContract.populateTransaction.withdraw(amount)
 }
 
@@ -30,12 +30,12 @@ function covertUnitsFrom18(num, dec) {
 
 async function formTipperTx(opp) {
     let dispatcherTipper = new ethers.Contract(
-        config.DISPATCHER_TIPPER, 
-        config.ABIS['dispatcherTipper']
+        config.constants.dispatcherTipper, 
+        config.abis['dispatcherTipper']
     )
     return dispatcherTipper.populateTransaction.tip(
         opp.inputAmount, 
-        config.TIPPER_SHARE_RATE
+        config.settings.arb.tipperShareRate
     )
 }
 
@@ -119,8 +119,8 @@ async function sendBatches(bundles, targetBlock, debugOnly=false) {
     let t1 = Date.now()
     console.log(`Latency: ${t1-t0} ms`)
     // console.log(response.body)
-    utils.logToCsv(archerApiParams, config.ARCHER_REQUESTS_LOGS_PATH)
-    let savePath = response.status=='error' ? config.ARCHER_FAIL_LOGS_PATH : config.ARCHER_PASS_LOGS_PATH
+    utils.logToCsv(archerApiParams, config.constants.paths.requests)
+    let savePath = response.status=='error' ? config.constants.paths.fails : config.constants.paths.passes
     utils.logToCsv(response, savePath)
     return response
 }
@@ -153,8 +153,8 @@ async function callBatches(bundles, targetBlock, debugOnly=false) {
     let t1 = Date.now()
     console.log(`Latency: ${t1-t0} ms`)
     // console.log(response.body)
-    utils.logToCsv(archerApiParams, config.ARCHER_REQUESTS_LOGS_PATH)
-    let savePath = response.status=='error' ? config.ARCHER_FAIL_LOGS_PATH : config.ARCHER_PASS_LOGS_PATH
+    utils.logToCsv(archerApiParams, config.constants.paths.requests)
+    let savePath = response.status=='error' ? config.constants.paths.fails : config.constants.paths.passes
     utils.logToCsv(response, savePath)
     return response
 }
@@ -200,8 +200,8 @@ async function submitTradeTx(blockNumber, txBody, queryTxResponse, opp) {
         blockDeadline: blockNumber+1
     }
     let response = await utils.broadcastToArcherWithOpts(...Object.values(archerApiParams))
-    utils.logToCsv(archerApiParams, config.ARCHER_REQUESTS_LOGS_PATH)
-    let savePath = response.status=='error' ? config.ARCHER_FAIL_LOGS_PATH : config.ARCHER_PASS_LOGS_PATH
+    utils.logToCsv(archerApiParams, config.constants.paths.requests)
+    let savePath = response.status=='error' ? config.constants.paths.fails : config.constants.paths.passes
     utils.logToCsv(response, savePath)
     return response
 }
@@ -225,8 +225,8 @@ async function executeOpportunity(opportunity, blockNumber) {
 
 async function makeDispatcherTx({ tradeTx, queryTx, inputAmount}, gasPrice, nonce) {
     let dispatcher = new ethers.Contract(
-        config.DISPATCHER, 
-        config.ABIS['dispatcher'], 
+        config.constants.dispatcher, 
+        config.abis['dispatcher'], 
         SIGNER
     )
     let makeTradeArgs = [
@@ -239,7 +239,7 @@ async function makeDispatcherTx({ tradeTx, queryTx, inputAmount}, gasPrice, nonc
     ]
     let txArgs = {
         gasPrice: gasPrice, 
-        gasLimit: config.GAS_LIMIT, 
+        gasLimit: config.settings.gas.gasLimit, 
         nonce: nonce
     }
     let tx = await dispatcher.populateTransaction['makeTrade(bytes,uint256[],bytes,uint256[],uint256,uint256)'](
@@ -260,7 +260,7 @@ async function makeDispatcherTx({ tradeTx, queryTx, inputAmount}, gasPrice, nonc
 }
 
 function decodeCalldata(calldata, abiKey) {
-    let interface = new ethers.utils.Interface(config.ABIS[abiKey])
+    let interface = new ethers.utils.Interface(config.abis[abiKey])
     let result = []
     let pointer = 2
     while (1) {

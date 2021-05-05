@@ -1,6 +1,6 @@
 const unsign = require('@warren-bank/ethereumjs-tx-unsign')
 const EthereumTx = require('ethereumjs-tx').Transaction
-const { ABIS } = require('./config')
+const config = require('./config')
 const ethers = require('ethers')
 const { BigNumber } = ethers
 
@@ -38,7 +38,7 @@ function decryptUnilikeTx(txRequest) {
         'swapExactETHForTokensSupportingFeeOnTransferTokens',
         'swapExactTokensForETHSupportingFeeOnTransferTokens'
     ] // TODO: Add to config
-    let abi = new ethers.utils.Interface(ABIS['uniswapRouter'])
+    let abi = new ethers.utils.Interface(config.abis['uniswapRouter'])
     // Try/catch determines if transaction fits a type
     try {
         var txDescription = abi.parseTransaction(txRequest)
@@ -62,7 +62,7 @@ function decryptUnilikeTx(txRequest) {
 }
 
 function decryptArcherswapTx(txRequest) {
-    let abi = new ethers.utils.Interface(ABIS['archerswapRouter'])
+    let abi = new ethers.utils.Interface(config.abis['archerswapRouter'])
     let supportedMethods = [
         'swapExactTokensForETHAndTipAmount',
         'swapExactTokensForETHWithPermitAndTipAmount',
@@ -202,7 +202,7 @@ function handleNewBackrunRequest(rawTx) {
         // Exit if unsupported pool
         return
     }
-    if (BACKRUN_REQUESTS.length>config.MAX_REQUESTS_POOL_SIZE) {
+    if (BACKRUN_REQUESTS.length>config.settings.arb.maxRequestPoolSize) {
         // TODO: First check if requests are still valid and only then remove them
         removeRequestsFromPool(1)  // Remove one request
     }

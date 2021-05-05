@@ -50,7 +50,7 @@ describe('Virtual reserves', () => {
 	before(async () => {
 		genNewAccount = await makeAccountGen()
 		signer = ethers.Wallet.createRandom().connect(ethers.provider)  // Create an account to sign txs
-		botOperator = new ethers.Wallet(config.PRIVATE_KEY, ethers.provider)  // Interact with dispatcher
+		botOperator = new ethers.Wallet(config.settings.network.privateKey, ethers.provider)  // Interact with dispatcher
 		bank = genNewAccount()  // Source of test eth
 		await impersonateAccount(signer.address)
 		
@@ -81,7 +81,7 @@ describe('Virtual reserves', () => {
 		}
 		let UniswapRouter = new ethers.Contract(
 			txCallArgs.router,
-			ABIS['uniswapRouter'] 
+			abis['uniswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
@@ -137,7 +137,7 @@ describe('Virtual reserves', () => {
 		}
 		let UniswapRouter = new ethers.Contract(
 			txCallArgs.router,
-			ABIS['uniswapRouter'] 
+			abis['uniswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
@@ -203,7 +203,7 @@ describe('Virtual reserves', () => {
 		}
 		let UniswapRouter = new ethers.Contract(
 			txCallArgs.router,
-			ABIS['uniswapRouter'] 
+			abis['uniswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
@@ -268,7 +268,7 @@ describe('Virtual reserves', () => {
 		}
 		let UniswapRouter = new ethers.Contract(
 			txCallArgs.router,
-			ABIS['uniswapRouter'] 
+			abis['uniswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
@@ -332,7 +332,7 @@ describe('Virtual reserves', () => {
 		}
 		let UniswapRouter = new ethers.Contract(
 			txCallArgs.router,
-			ABIS['uniswapRouter'] 
+			abis['uniswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
@@ -371,7 +371,7 @@ describe('Virtual reserves', () => {
 		// Create transaction for uniswap trade and sign it
 		let UniswapRouter = new ethers.Contract(
 			unilikeRouters.uniswap,
-			ABIS['uniswapRouter'] 
+			abis['uniswapRouter'] 
 		)
 		let tradeTxRequest1 = await UniswapRouter.populateTransaction['swapExactETHForTokens'](
 			ZERO, 
@@ -382,7 +382,7 @@ describe('Virtual reserves', () => {
 		)
 		let SushiswapRouter = new ethers.Contract(
 			unilikeRouters.sushiswap,
-			ABIS['uniswapRouter'] 
+			abis['uniswapRouter'] 
 		)
 		let tradeTxRequest2 = await SushiswapRouter.populateTransaction['swapExactETHForTokens'](
 			ZERO, 

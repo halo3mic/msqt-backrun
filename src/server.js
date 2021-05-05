@@ -10,7 +10,7 @@ let BLOCK_HEIGHT
 let POOLS  // Addresses for pools that are used by valid paths
 
 async function init() {
-    let startGasPrice = await utils.fetchGasPrice(config.GAS_SPEED)
+    let startGasPrice = await utils.fetchGasPrice(config.settings.gas.gasSpeed)
     await arbbot.init(provider, signer, startGasPrice)
     BLOCK_HEIGHT = await provider.getBlockNumber()
     POOLS = instrMng.getPoolAddressesForPaths(arbbot.getPaths())
@@ -27,7 +27,7 @@ function startListeners() {
  * Update reserves if Sync logs are found
  */
 function startListeningForBlocks() {
-    const filter = { topics: [ config.UNISWAP_SYNC_TOPIC ] }
+    const filter = { topics: [ config.constants.uniswapSyncTopic ] }
     provider.on('block', async (blockNumber) => {
         if (blockNumber > BLOCK_HEIGHT) {
             BLOCK_HEIGHT = blockNumber
@@ -53,14 +53,14 @@ async function startGasUpdates() {
     while (1) {
         try {
             arbbot.updateGasPrice(
-                await utils.fetchGasPrice(config.GAS_SPEED)
+                await utils.fetchGasPrice(config.settings.gas.gasSpeed)
             )
         } catch (e) {
             console.log('Failed to fetch gas price')
             console.log(e)
         } finally {
             // Wait to avoid reaching request limit for API
-            utils.sleep(config.GAS_UPDATE_PERIOD)
+            utils.sleep(config.settings.gas.updatePeriod)
         }
     }
 }

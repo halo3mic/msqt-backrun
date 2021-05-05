@@ -32,11 +32,11 @@ function getPoolAddressesForPaths(_paths) {
  function filterPathsByConfig(_paths) {
     _paths = _paths.filter(path => {
         return (
-            path.tkns.filter(t => config.BLACKLISTED_TKNS.includes(t)).length == 0 &&  // Exclude blacklisted tokens
-            path.tkns[0] == config.BASE_ASSET &&  // Paths needs to start in BASE-ASSET
-            path.tkns[path.tkns.length - 1] == config.BASE_ASSET &&  // Path needs to end in BASE-ASSET
+            path.tkns.filter(t => config.settings.arb.blacklistedTokens.includes(t)).length == 0 &&  // Exclude blacklisted tokens
+            path.tkns[0] == config.settings.arb.baseAsset &&  // Paths needs to start in BASE-ASSET
+            path.tkns[path.tkns.length - 1] == config.settings.arb.baseAsset &&  // Path needs to end in BASE-ASSET
             path.enabled &&  // Path needs to be enabled
-            config.MAX_HOPS >= path.pools.length - 1  // Filter path length
+            config.settings.arb.maxHops >= path.pools.length - 1  // Filter path length
         )
     })
     console.log('Found ', _paths.length, ' valid paths')
@@ -48,7 +48,7 @@ function getPoolAddressesForPaths(_paths) {
  */
  function filterPathsWithEmptyPool(_paths, _reserves) {
     _reserves = _reserves || {}
-    let threshold = config.EMPTY_POOL_THRESHOLD
+    let threshold = config.settings.arb.emptyPoolThreshold
     let validPools = Object.entries(_reserves).map(e => {
         let [ poolId, reserves ] = e
         let rVals = Object.values(reserves) 

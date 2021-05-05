@@ -51,7 +51,7 @@ describe('Execution', () => {
 	before(async () => {
 		genNewAccount = await makeAccountGen()
 		signer = ethers.Wallet.createRandom().connect(ethers.provider)  // Create an account to sign txs
-		botOperator = new ethers.Wallet(config.PRIVATE_KEY, ethers.provider)  // Interact with dispatcher
+		botOperator = new ethers.Wallet(config.settings.network.privateKey, ethers.provider)  // Interact with dispatcher
 		bank = genNewAccount()  // Source of test eth
 		await impersonateAccount(signer.address)
 		
@@ -74,7 +74,7 @@ describe('Execution', () => {
 		// Create transaction for uniswap trade and sign it
 		let UniswapRouter = new ethers.Contract(
 			unilikeRouters.uniswap,
-			ABIS['uniswapRouter'], 
+			abis['uniswapRouter'], 
 			signer
 		)
 		let nextNonce = await signer.getTransactionCount()
@@ -121,14 +121,14 @@ describe('Execution', () => {
 		// Execute arb tx	
 		console.log('Executing arb tx')
 		let latestBlock = await ethers.provider.getBlock('latest')  // Miner stays the same!
-		let dispatcherBalBefore = await ethers.provider.getBalance(config.DISPATCHER)
-		let tipjarBalBefore = await ethers.provider.getBalance(config.TIPJAR)
+		let dispatcherBalBefore = await ethers.provider.getBalance(config.constants.dispatcher)
+		let tipjarBalBefore = await ethers.provider.getBalance(config.constants.tipJar)
 		let minerBalBefore = await ethers.provider.getBalance(latestBlock.miner)
 		await botOperator.sendTransaction(dispatcherTx).then(
 			async response => response.wait()
 		)
-		let dispatcherBalAfter = await ethers.provider.getBalance(config.DISPATCHER)
-		let tipjarBalAfter = await ethers.provider.getBalance(config.TIPJAR)
+		let dispatcherBalAfter = await ethers.provider.getBalance(config.constants.dispatcher)
+		let tipjarBalAfter = await ethers.provider.getBalance(config.constants.tipJar)
 		let minerBalAfter = await ethers.provider.getBalance(latestBlock.miner)
 		let dispatcherBalNet = dispatcherBalAfter.sub(dispatcherBalBefore)
 		let tipjarBalNet = tipjarBalAfter.sub(tipjarBalBefore)

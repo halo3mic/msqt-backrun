@@ -60,7 +60,7 @@ describe('Handle new backrun request', () => {
 	before(async () => {
 		genNewAccount = await makeAccountGen()
 		signer = ethers.Wallet.createRandom().connect(ethers.provider)
-		botOperator = new ethers.Wallet(config.PRIVATE_KEY, ethers.provider)
+		botOperator = new ethers.Wallet(config.settings.network.privateKey, ethers.provider)
 	})
 
 	beforeEach(() => {
@@ -149,7 +149,7 @@ describe('Handle new backrun request', () => {
 			}
 			let UniswapRouter = new ethers.Contract(
 				txCallArgs.router,
-				ABIS['uniswapRouter'] 
+				abis['uniswapRouter'] 
 			)
 			let nextNonce = await signer.getTransactionCount()
 			nextNonce = nextNonce==0 ? 1 : nextNonce
@@ -209,7 +209,7 @@ describe('Handle new backrun request', () => {
 			}
 			let UniswapRouter = new ethers.Contract(
 				txCallArgs.router,
-				ABIS['uniswapRouter'] 
+				abis['uniswapRouter'] 
 			)
 			let nextNonce = await signer.getTransactionCount()
 			nextNonce = nextNonce==0 ? 1 : nextNonce
@@ -257,7 +257,7 @@ describe('Handle new backrun request', () => {
 			}
 			let UniswapRouter = new ethers.Contract(
 				txCallArgs.router,
-				ABIS['uniswapRouter'] 
+				abis['uniswapRouter'] 
 			)
 			let nextNonce = await signer.getTransactionCount()
 			nextNonce = nextNonce==0 ? 1 : nextNonce

@@ -1,7 +1,6 @@
 require('dotenv').config()
 const ethers = require('ethers')
 ARCHER_API_KEY = process.env.ARCHER_API_KEY
-const { ARCHER_URL, ARCHER_BATCHES_URL } = require('./config')
 const config = require('./config')
 const fs = require('fs');
 const csvWriter = require('csv-write-stream')
@@ -128,13 +127,13 @@ async function submitBatchesToArcher({ethCall, senderAddress, signature}) {
             'X-Flashbots-Signature': senderAddress+':'+signature
         }
     }
-    return fetch(config.ARCHER_BATCHES_URL, request)
+    return fetch(config.constants.archerBatchesEndpoint, request)
         // .then(response => response.json())
         .catch(error => console.log("broadcastToArcher::error", error))
 }
 
 async function submitSimulationRequest(request) {
-    return fetch(config.ARCHER_BATCHES_URL, request)
+    return fetch(config.constants.archerBatchesEndpoint, request)
     .catch(error => console.log("broadcastToArcher::error", error))}
 
 function logToCsv(data, path) {
@@ -167,9 +166,6 @@ async function fetchGasPrice(speed) {
       const jsonResult = await result.json()
       const option = jsonResult.data[speed].toString()
       let gasPrice = ethers.BigNumber.from(option)
-      if (gasPrice.gt(config.GAS_PRICE_LIMIT)) {
-          throw new Error('Gas price limit reached!')
-      }
       return gasPrice
     }
     catch (error) {

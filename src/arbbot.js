@@ -68,7 +68,7 @@ function arbForPath(path, virtualReserves) {
     let reservePath = getReservePath(path, virtualReserves)
     let optimalIn = math.getOptimalAmountForPath(reservePath)
     if (optimalIn.gt("0")) {
-        let avlAmount = BOT_BAL.sub(config.MAX_GAS_COST)  // TODO: Not relevant anymore with tipjar
+        let avlAmount = BOT_BAL.sub(config.settings.gas.maxGasCost)  // TODO: Not relevant anymore with tipjar
         let inputAmount = avlAmount.gt(optimalIn) ? optimalIn : BOT_BAL
         let swapAmounts = math.getAmountsByReserves(inputAmount, reservePath)
         let amountOut = swapAmounts[swapAmounts.length-1]
@@ -76,7 +76,7 @@ function arbForPath(path, virtualReserves) {
         let gasPrice = process.argv.includes('--zero-gas') ? ethers.constants.Zero : GAS_PRICE
         let gasCost= gasPrice.mul(path.gasAmount)
         let netProfit = grossProfit.sub(gasCost)
-        if (netProfit.gt(config.MIN_PROFIT)) {
+        if (netProfit.gt(config.settings.arb.minProfit)) {
             return {
                 gasAmount: path.gasAmount,
                 netProfit: netProfit,
@@ -220,7 +220,7 @@ async function backrunRequest(rawTxRequest, blockNumber) {
  * @returns {BigNumber}
  */
  async function getDispatcherBalance() {
-    return PROVIDER.getBalance(config.DISPATCHER)
+    return PROVIDER.getBalance(config.constants.dispatcher)
 }
 
 /**

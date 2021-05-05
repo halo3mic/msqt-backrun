@@ -7,12 +7,12 @@ const ethers = require('ethers')
  * @returns {ethers.providers.WebSocketProvider}
  */
 function setWsProvider() {
-	if (!config.WS_ENDPOINT) {
+	if (!config.settings.network.wsEndpoint) {
 		console.log('No Websockets endpoint detected!')
 	}
     let _wsProvider = new ethers.providers.WebSocketProvider(
-      config.WS_ENDPOINT,
-      config.NETWORK
+      config.settings.network.wsEndpoint,
+      config.settings.network.networkId
     )
     _wsProvider.on("error", async (error) => {
       console.log("provider::error", error);
@@ -25,20 +25,20 @@ function setWsProvider() {
  * @returns {ethers.providers.JsonRpcProvider}
  */
 function setHttpProvider() {
-	if (!config.RPC_ENDPOINT) {
+	if (!config.settings.network.rpcEndpoint) {
 		console.log('No RPC endpoint detected!')
 	}
     return new ethers.providers.JsonRpcProvider(
-      config.RPC_ENDPOINT,
-      config.NETWORK
+      config.settings.network.rpcEndpoint,
+      config.settings.network.networkId
     )
 }
 
 function setWallet() {
-    if (!config.PRIVATE_KEY) {
+    if (!config.settings.network.privateKey) {
 		console.log('No private key detected!')
 	}
-	let wallet = new ethers.Wallet(config.PRIVATE_KEY)
+	let wallet = new ethers.Wallet(config.settings.network.privateKey)
 	console.log(`Using acount ${wallet.address} as signer.`)
 	return wallet
 }
@@ -51,8 +51,8 @@ function setWallet() {
  */
 function setGancheProvider(params) {
     params = params || {}
-    params.fork = params.fork ? params.fork : config.WS_ENDPOINT
-    params.network_id = config.NETWORK
+    params.fork = params.fork ? params.fork : config.settings.network.wsEndpoint
+    params.network_id = config.settings.network.networkId
     return new ethers.providers.Web3Provider(ganache.provider(params))
 }
 
@@ -62,16 +62,16 @@ function init() {
 	let wsProvider = setWsProvider()
 	let http = {
 		signer: wallet ? wallet.connect(httpProvider): null, 
-		endpoint: config.RPC_ENDPOINT,
+		endpoint: config.settings.network.rpcEndpoint,
 		provider: httpProvider,
 	}
 	let ws = {
 		signer: wallet ? wallet.connect(wsProvider): null, 
-		endpoint: config.WS_ENDPOINT,
+		endpoint: config.settings.network.wsEndpoint,
 		provider: wsProvider,
 	}
 	return { 
-		network: config.NETWORK, 
+		network: config.settings.network.networkId, 
 		setGancheProvider,
 		http, 
 		ws, 

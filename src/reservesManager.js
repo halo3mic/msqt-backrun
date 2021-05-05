@@ -22,7 +22,7 @@ async function init(provider, paths) {
  async function fetchReservesRaw(poolAddress) {
     const poolContract = new ethers.Contract(
         poolAddress, 
-        ABIS['uniswapPool'], 
+        abis['uniswapPool'], 
         PROVIDER
     )
     return poolContract.getReserves()
