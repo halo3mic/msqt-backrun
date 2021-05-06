@@ -8,6 +8,7 @@ const utils = require('./utils')
 
 let BLOCK_HEIGHT
 let POOLS  // Addresses for pools that are used by valid paths
+let requestListener
 
 async function init() {
     let startGasPrice = await utils.fetchGasPrice(config.settings.gas.gasSpeed)
@@ -125,13 +126,15 @@ async function startRequestUpdates() {
             })
         }
     })
-    app.listen(port, () => {
+    requestListener = app.listen(port, () => {
         console.log(`Server running on port ${port}`)
     })
 }
 
-function kill() {
-    process.exit(1)
+function stopRequestUpdates() {
+    if (requestListener) {
+        requestListener.close()
+    }
 }
 
 async function main() {
@@ -141,9 +144,9 @@ async function main() {
 
 module.exports = { 
     startRequestUpdates,
+    stopRequestUpdates,
     startListeners,
     arbbot,
     main, 
     init,
-    kill, 
 }
