@@ -158,7 +158,7 @@ async function handleBlockUpdate(blockNumber) {
  */
 async function handleOpp(blockNumber, opps) {
     try {
-        let response = await txManager.executeBatches(opps, blockNumber)
+        let response = await txManager.executeBundles(opps, blockNumber)
         opps.forEach(printOpportunityInfo)
         console.log(response)  // Response from Archer
     }
