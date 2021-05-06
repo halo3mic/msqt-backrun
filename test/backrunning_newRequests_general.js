@@ -137,6 +137,10 @@ describe('Handle new backrun request', () => {
 			server.startRequestUpdates()
 		})
 
+		after(() => {
+			server.stopRequestUpdates()
+		})
+
 		it('Signed transaction request to /submitRequest should be added to the local mempool', async () => {
 			// Make request and sign it
 			let txCallArgs = {

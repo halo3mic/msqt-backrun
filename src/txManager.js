@@ -270,6 +270,7 @@ async function formTipperTx(opp) {
 
 module.exports = { 
     getArcherSendBundleParams,
+    getArcherCallBundleParams,
     formDispatcherTx,
     executeBundles,
     oppsToBundle,

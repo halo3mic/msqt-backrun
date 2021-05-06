@@ -85,8 +85,8 @@ async function init(provider, paths) {
     const tkn1 = tokens.filter(t=>t.id==pool.tkns[1].id)[0]
     let r0 = ethers.BigNumber.from(reservesBytes.substr(0, 66))
     let r1 = ethers.BigNumber.from('0x' + reservesBytes.substr(66))
-    r0 = normalizeUnits(r0, tkn0.decimal)
-    r1 = normalizeUnits(r1, tkn1.decimal)
+    r0 = utils.normalizeUnits(r0, tkn0.decimal)
+    r1 = utils.normalizeUnits(r1, tkn1.decimal)
     let result = {}
     result[tkn0.id] = r0
     result[tkn1.id] = r1

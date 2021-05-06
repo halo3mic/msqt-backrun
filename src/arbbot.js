@@ -174,9 +174,7 @@ async function handleOpp(blockNumber, opps) {
  * @returns {Object}
  */
 async function backrunRequest(rawTxRequest, blockNumber) {
-    // TODO: Need to check request validity? backrunner.isValidRequest(request)
-    let request = backrunner.decryptRawTx(rawTxRequest)
-    request.callArgs = backrunner.enrichCallArgs(request.callArgs)
+    let request = backrunner.parseBackrunRequest(rawTxRequest)
     let opps = getOppsForRequest(request)
     if (opps.length>0) {
         opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
