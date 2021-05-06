@@ -130,6 +130,10 @@ async function startRequestUpdates() {
     })
 }
 
+function kill() {
+    process.exit(1)
+}
+
 async function main() {
     await init()
     startListeners()
@@ -140,5 +144,6 @@ module.exports = {
     startListeners,
     arbbot,
     main, 
-    init, 
+    init,
+    kill, 
 }
