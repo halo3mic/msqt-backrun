@@ -11,6 +11,7 @@ const arbbot = require('../src/arbbot')
 const config = require('../src/config')
 const fetch = require('node-fetch')
 const csv = require('csvtojson')
+const utils = require('../src/utils')
 const fs = require('fs')
 
 const ZERO = ethers.constants.Zero
@@ -67,7 +68,10 @@ describe('Logging', () => {
 		genNewAccount = await makeAccountGen()
 		signer = ethers.Wallet.createRandom().connect(ethers.provider)
 		botOperator = new ethers.Wallet(config.settings.network.privateKey, ethers.provider)
-	})
+        // Change save destination
+        config.constants.paths.requests = __dirname + '/.test.requests.csv'
+        config.constants.paths.opps = __dirname + '/.test.opps.csv'
+    })
 
 	beforeEach(() => {
 		trader = genNewAccount()
@@ -75,97 +79,246 @@ describe('Logging', () => {
 		backrunner.cleanRequestsPool()
 	})
 
-	describe('Log requests', () => {
+	// describe('Log requests', () => {
+
+	// 	before(async () => {
+	// 		// Start arb bot and request listener
+	// 		await server.init()
+	// 		server.startRequestUpdates()
+	// 	})
+
+    //     afterEach(() => {
+    //         // Clean the test logs
+    //         fs.unlinkSync(config.constants.paths.requests)
+    //     })
+
+	// 	it('Request to /submitRequest and its response should be saved locally (success)', async () => {
+	// 		// Make request and sign it
+	// 		let txCallArgs = {
+	// 			amountIn: ethers.utils.parseEther('100'),
+	// 			amountOut: ZERO,
+	// 			method: 'swapExactETHForTokens',
+	// 			tknPath: [ assets.WETH, assets.DAI ],
+	// 			router: unilikeRouters.uniswap, 
+	// 			deadline: parseInt(Date.now()/1e3)+300
+	// 		}
+	// 		let UniswapRouter = new ethers.Contract(
+	// 			txCallArgs.router,
+	// 			abis['uniswapRouter'] 
+	// 		)
+	// 		let nextNonce = await signer.getTransactionCount()
+	// 		nextNonce = nextNonce==0 ? 1 : nextNonce
+	// 		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
+	// 			txCallArgs.amountOut, 
+	// 			txCallArgs.tknPath, 
+	// 			signer.address,
+	// 			txCallArgs.deadline, 
+	// 			{ 
+	// 				gasPrice: ZERO, 
+	// 				value: txCallArgs.amountIn, 
+	// 				nonce: nextNonce, 
+	// 			}
+	// 		)
+	// 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+	// 		// Submit signed tx request to the bot
+	// 		let response = await fetch(
+	// 			'http://localhost:8888/submitRequest', 
+	// 			{
+	// 				method: 'post',
+	// 				body:    signedTradeTxRequest,
+	// 				headers: { 'Content-Type': 'application/text' },
+	// 			}
+	// 		)
+	// 		response = await response.json()
+	// 		expect(response.status).to.equal(1)
+	// 		expect(response.msg).to.equal('OK')
+	// 		// Confirm the request and its response were saved
+    //         let [ savedRequest ] = await csv().fromFile(
+    //             config.constants.paths.requests
+    //         )
+    //         expect(savedRequest.method).to.equal('submitRequest')
+    //         expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
+    //         expect(savedRequest.response).to.equal(JSON.stringify(response))
+    //         expect(typeof savedRequest.id == 'string').to.be.true
+    //         expect(isNumeric(savedRequest.blockNumber)).to.be.true
+    //         expect(isNumeric(savedRequest.timestampRecv)).to.be.true
+    //         expect(isNumeric(savedRequest.timestampResp)).to.be.true
+	// 	})
+	
+	// 	it('Request to /submitRequest in invalid format shall be rejected', async () => {
+    //         let signedTradeTxRequest = 'this is not a hex string'
+	// 		let response = await fetch(
+	// 			'http://localhost:8888/submitRequest', 
+	// 			{
+	// 				method: 'post',
+	// 				body:    signedTradeTxRequest,
+	// 				headers: { 'Content-Type': 'application/text' },
+	// 			}
+	// 		)
+	// 		response = await response.json()
+    //         // Confirm the request and its response were saved
+    //         let [ savedRequest ] = await csv().fromFile(
+    //             config.constants.paths.requests
+    //         )
+    //         expect(savedRequest.method).to.equal('submitRequest')
+    //         expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
+    //         expect(savedRequest.response).to.equal(JSON.stringify(response))
+    //         expect(typeof savedRequest.id == 'string').to.be.true
+    //         expect(isNumeric(savedRequest.blockNumber)).to.be.true
+    //         expect(isNumeric(savedRequest.timestampRecv)).to.be.true
+    //         expect(isNumeric(savedRequest.timestampResp)).to.be.true
+	// 	})
+	
+	// 	it('Signed transaction request to /backrunRequest should return bundle to the sender if opps are found for request', async () => {
+	// 		// Make request and sign it
+	// 		let txCallArgs = {
+	// 			amountIn: ethers.utils.parseEther('1000'),
+	// 			amountOut: ZERO,
+	// 			method: 'swapExactETHForTokens',
+	// 			tknPath: [ assets.WETH, assets.DAI ],
+	// 			router: unilikeRouters.uniswap, 
+	// 			deadline: parseInt(Date.now()/1e3)+300
+	// 		}
+	// 		let UniswapRouter = new ethers.Contract(
+	// 			txCallArgs.router,
+	// 			abis['uniswapRouter'] 
+	// 		)
+	// 		let nextNonce = await signer.getTransactionCount()
+	// 		nextNonce = nextNonce==0 ? 1 : nextNonce
+	// 		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
+	// 			txCallArgs.amountOut, 
+	// 			txCallArgs.tknPath, 
+	// 			signer.address,
+	// 			txCallArgs.deadline, 
+	// 			{ 
+	// 				gasPrice: ZERO, 
+	// 				value: txCallArgs.amountIn, 
+	// 				nonce: nextNonce, 
+	// 			}
+	// 		)
+	// 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+	// 		// Submit signed tx request to the bot
+	// 		let requestSubmissionTime = Date.now()
+	// 		let response = await fetch(
+	// 			'http://localhost:8888/backrunRequest', 
+	// 			{
+	// 				method: 'post',
+	// 				body:    signedTradeTxRequest,
+	// 				headers: { 'Content-Type': 'application/text' },
+	// 			}
+	// 		)
+	// 		let requestRecievedTime = Date.now()
+	// 		console.log(`Time taken for request: ${requestRecievedTime-requestSubmissionTime} ms`)
+	// 		response = await response.json()
+	// 		// Confirm the request and its response were saved
+    //         let [ savedRequest ] = await csv().fromFile(
+    //             config.constants.paths.requests
+    //         )
+    //         expect(savedRequest.method).to.equal('backrunRequest')
+    //         expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
+    //         expect(savedRequest.response).to.equal(JSON.stringify(response))
+    //         expect(typeof savedRequest.id == 'string').to.be.true
+    //         expect(isNumeric(savedRequest.blockNumber)).to.be.true
+    //         expect(isNumeric(savedRequest.timestampRecv)).to.be.true
+    //         expect(isNumeric(savedRequest.timestampResp)).to.be.true
+	// 	})
+	
+	// 	it('Signed transaction request to /backrunRequest should return empty object if opps are not found for request', async () => {
+	// 		// ! Could fail if there actually is opportunity for pools trade goes through without backrunning
+	// 		// TODO: Prevent above
+	// 		// Make request and sign it
+	// 		let txCallArgs = {
+	// 			amountIn: ethers.utils.parseEther('0.001'),
+	// 			amountOut: ZERO,
+	// 			method: 'swapExactETHForTokens',
+	// 			tknPath: [ assets.WETH, assets.DAI ],
+	// 			router: unilikeRouters.uniswap, 
+	// 			deadline: parseInt(Date.now()/1e3)+300
+	// 		}
+	// 		let UniswapRouter = new ethers.Contract(
+	// 			txCallArgs.router,
+	// 			abis['uniswapRouter'] 
+	// 		)
+	// 		let nextNonce = await signer.getTransactionCount()
+	// 		nextNonce = nextNonce==0 ? 1 : nextNonce
+	// 		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
+	// 			txCallArgs.amountOut, 
+	// 			txCallArgs.tknPath, 
+	// 			signer.address,
+	// 			txCallArgs.deadline, 
+	// 			{ 
+	// 				gasPrice: ZERO, 
+	// 				value: txCallArgs.amountIn, 
+	// 				nonce: nextNonce, 
+	// 			}
+	// 		)
+	// 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+	// 		// Submit signed tx request to the bot
+	// 		let requestSubmissionTime = Date.now()
+	// 		let response = await fetch(
+	// 			'http://localhost:8888/backrunRequest', 
+	// 			{
+	// 				method: 'post',
+	// 				body:    signedTradeTxRequest,
+	// 				headers: { 'Content-Type': 'application/text' },
+	// 			}
+	// 		)
+	// 		let requestRecievedTime = Date.now()
+	// 		console.log(`Time taken for request: ${requestRecievedTime-requestSubmissionTime} ms`)
+	// 		response = await response.json()
+	// 		// Confirm the request and its response were saved
+    //         let [ savedRequest ] = await csv().fromFile(
+    //             config.constants.paths.requests
+    //         )
+    //         expect(savedRequest.method).to.equal('backrunRequest')
+    //         expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
+    //         expect(savedRequest.response).to.equal(JSON.stringify(response))
+    //         expect(typeof savedRequest.id == 'string').to.be.true
+    //         expect(isNumeric(savedRequest.blockNumber)).to.be.true
+    //         expect(isNumeric(savedRequest.timestampRecv)).to.be.true
+    //         expect(isNumeric(savedRequest.timestampResp)).to.be.true
+	// 	})
+	
+	// 	it('Request to /backrunRequest in invalid format shall be rejected', async () => {
+    //         let signedTradeTxRequest = 'this is not a hex string'
+	// 		let response = await fetch(
+	// 			'http://localhost:8888/backrunRequest', 
+	// 			{
+	// 				method: 'post',
+	// 				body:    signedTradeTxRequest,
+	// 				headers: { 'Content-Type': 'application/text' },
+	// 			}
+	// 		)
+	// 		response = await response.json()
+	// 		// Confirm the request and its response were saved
+    //         let [ savedRequest ] = await csv().fromFile(
+    //             config.constants.paths.requests
+    //         )
+    //         expect(savedRequest.method).to.equal('backrunRequest')
+    //         expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
+    //         expect(savedRequest.response).to.equal(JSON.stringify(response))
+    //         expect(typeof savedRequest.id == 'string').to.be.true
+    //         expect(isNumeric(savedRequest.blockNumber)).to.be.true
+    //         expect(isNumeric(savedRequest.timestampRecv)).to.be.true
+    //         expect(isNumeric(savedRequest.timestampResp)).to.be.true
+	// 	})
+
+	// })
+
+    describe('Log opportunities', () => {
 
 		before(async () => {
 			// Start arb bot and request listener
 			await server.init()
 			server.startRequestUpdates()
-            // Change save destination
-            config.constants.paths.requests = __dirname + '/.test.requests.csv'
 		})
 
-        afterEach(() => {
+        afterEach(async () => {
             // Clean the test logs
-            fs.unlinkSync(config.constants.paths.requests)
+            fs.unlinkSync(config.constants.paths.opps)
+            await utils.sleep(1)  // Wait for process to finish 
         })
 
-		it('Request to /submitRequest and its response should be saved locally (success)', async () => {
-			// Make request and sign it
-			let txCallArgs = {
-				amountIn: ethers.utils.parseEther('100'),
-				amountOut: ZERO,
-				method: 'swapExactETHForTokens',
-				tknPath: [ assets.WETH, assets.DAI ],
-				router: unilikeRouters.uniswap, 
-				deadline: parseInt(Date.now()/1e3)+300
-			}
-			let UniswapRouter = new ethers.Contract(
-				txCallArgs.router,
-				abis['uniswapRouter'] 
-			)
-			let nextNonce = await signer.getTransactionCount()
-			nextNonce = nextNonce==0 ? 1 : nextNonce
-			let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
-				txCallArgs.amountOut, 
-				txCallArgs.tknPath, 
-				signer.address,
-				txCallArgs.deadline, 
-				{ 
-					gasPrice: ZERO, 
-					value: txCallArgs.amountIn, 
-					nonce: nextNonce, 
-				}
-			)
-			let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
-			// Submit signed tx request to the bot
-			let response = await fetch(
-				'http://localhost:8888/submitRequest', 
-				{
-					method: 'post',
-					body:    signedTradeTxRequest,
-					headers: { 'Content-Type': 'application/text' },
-				}
-			)
-			response = await response.json()
-			expect(response.status).to.equal(1)
-			expect(response.msg).to.equal('OK')
-			// Confirm the request and its response were saved
-            let [ savedRequest ] = await csv().fromFile(
-                config.constants.paths.requests
-            )
-            expect(savedRequest.method).to.equal('submitRequest')
-            expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
-            expect(savedRequest.response).to.equal(JSON.stringify(response))
-            expect(typeof savedRequest.id == 'string').to.be.true
-            expect(isNumeric(savedRequest.blockNumber)).to.be.true
-            expect(isNumeric(savedRequest.timestampRecv)).to.be.true
-            expect(isNumeric(savedRequest.timestampResp)).to.be.true
-		})
-	
-		it('Request to /submitRequest in invalid format shall be rejected', async () => {
-            let signedTradeTxRequest = 'this is not a hex string'
-			let response = await fetch(
-				'http://localhost:8888/submitRequest', 
-				{
-					method: 'post',
-					body:    signedTradeTxRequest,
-					headers: { 'Content-Type': 'application/text' },
-				}
-			)
-			response = await response.json()
-            // Confirm the request and its response were saved
-            let [ savedRequest ] = await csv().fromFile(
-                config.constants.paths.requests
-            )
-            expect(savedRequest.method).to.equal('submitRequest')
-            expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
-            expect(savedRequest.response).to.equal(JSON.stringify(response))
-            expect(typeof savedRequest.id == 'string').to.be.true
-            expect(isNumeric(savedRequest.blockNumber)).to.be.true
-            expect(isNumeric(savedRequest.timestampRecv)).to.be.true
-            expect(isNumeric(savedRequest.timestampResp)).to.be.true
-		})
 	
 		it('Signed transaction request to /backrunRequest should return bundle to the sender if opps are found for request', async () => {
 			// Make request and sign it
@@ -208,98 +361,100 @@ describe('Logging', () => {
 			let requestRecievedTime = Date.now()
 			console.log(`Time taken for request: ${requestRecievedTime-requestSubmissionTime} ms`)
 			response = await response.json()
-			// Confirm the request and its response were saved
-            let [ savedRequest ] = await csv().fromFile(
-                config.constants.paths.requests
+			// Confirm the opportunities were saved
+            await utils.sleep(10)
+            let [ savedOpps ] = await csv().fromFile(
+                config.constants.paths.opps
             )
-            expect(savedRequest.method).to.equal('backrunRequest')
-            expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
-            expect(savedRequest.response).to.equal(JSON.stringify(response))
-            expect(typeof savedRequest.id == 'string').to.be.true
-            expect(isNumeric(savedRequest.blockNumber)).to.be.true
-            expect(isNumeric(savedRequest.timestampRecv)).to.be.true
-            expect(isNumeric(savedRequest.timestampResp)).to.be.true
+            console.log(savedOpps)
+            // expect(savedRequest.method).to.equal('backrunRequest')
+            // expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
+            // expect(savedRequest.response).to.equal(JSON.stringify(response))
+            // expect(typeof savedRequest.id == 'string').to.be.true
+            // expect(isNumeric(savedRequest.blockNumber)).to.be.true
+            // expect(isNumeric(savedRequest.timestampRecv)).to.be.true
+            // expect(isNumeric(savedRequest.timestampResp)).to.be.true
 		})
 	
-		it('Signed transaction request to /backrunRequest should return empty object if opps are not found for request', async () => {
-			// ! Could fail if there actually is opportunity for pools trade goes through without backrunning
-			// TODO: Prevent above
-			// Make request and sign it
-			let txCallArgs = {
-				amountIn: ethers.utils.parseEther('0.001'),
-				amountOut: ZERO,
-				method: 'swapExactETHForTokens',
-				tknPath: [ assets.WETH, assets.DAI ],
-				router: unilikeRouters.uniswap, 
-				deadline: parseInt(Date.now()/1e3)+300
-			}
-			let UniswapRouter = new ethers.Contract(
-				txCallArgs.router,
-				abis['uniswapRouter'] 
-			)
-			let nextNonce = await signer.getTransactionCount()
-			nextNonce = nextNonce==0 ? 1 : nextNonce
-			let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
-				txCallArgs.amountOut, 
-				txCallArgs.tknPath, 
-				signer.address,
-				txCallArgs.deadline, 
-				{ 
-					gasPrice: ZERO, 
-					value: txCallArgs.amountIn, 
-					nonce: nextNonce, 
-				}
-			)
-			let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
-			// Submit signed tx request to the bot
-			let requestSubmissionTime = Date.now()
-			let response = await fetch(
-				'http://localhost:8888/backrunRequest', 
-				{
-					method: 'post',
-					body:    signedTradeTxRequest,
-					headers: { 'Content-Type': 'application/text' },
-				}
-			)
-			let requestRecievedTime = Date.now()
-			console.log(`Time taken for request: ${requestRecievedTime-requestSubmissionTime} ms`)
-			response = await response.json()
-			// Confirm the request and its response were saved
-            let [ savedRequest ] = await csv().fromFile(
-                config.constants.paths.requests
-            )
-            expect(savedRequest.method).to.equal('backrunRequest')
-            expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
-            expect(savedRequest.response).to.equal(JSON.stringify(response))
-            expect(typeof savedRequest.id == 'string').to.be.true
-            expect(isNumeric(savedRequest.blockNumber)).to.be.true
-            expect(isNumeric(savedRequest.timestampRecv)).to.be.true
-            expect(isNumeric(savedRequest.timestampResp)).to.be.true
-		})
+	// 	it('Signed transaction request to /backrunRequest should return empty object if opps are not found for request', async () => {
+	// 		// ! Could fail if there actually is opportunity for pools trade goes through without backrunning
+	// 		// TODO: Prevent above
+	// 		// Make request and sign it
+	// 		let txCallArgs = {
+	// 			amountIn: ethers.utils.parseEther('0.001'),
+	// 			amountOut: ZERO,
+	// 			method: 'swapExactETHForTokens',
+	// 			tknPath: [ assets.WETH, assets.DAI ],
+	// 			router: unilikeRouters.uniswap, 
+	// 			deadline: parseInt(Date.now()/1e3)+300
+	// 		}
+	// 		let UniswapRouter = new ethers.Contract(
+	// 			txCallArgs.router,
+	// 			abis['uniswapRouter'] 
+	// 		)
+	// 		let nextNonce = await signer.getTransactionCount()
+	// 		nextNonce = nextNonce==0 ? 1 : nextNonce
+	// 		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
+	// 			txCallArgs.amountOut, 
+	// 			txCallArgs.tknPath, 
+	// 			signer.address,
+	// 			txCallArgs.deadline, 
+	// 			{ 
+	// 				gasPrice: ZERO, 
+	// 				value: txCallArgs.amountIn, 
+	// 				nonce: nextNonce, 
+	// 			}
+	// 		)
+	// 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+	// 		// Submit signed tx request to the bot
+	// 		let requestSubmissionTime = Date.now()
+	// 		let response = await fetch(
+	// 			'http://localhost:8888/backrunRequest', 
+	// 			{
+	// 				method: 'post',
+	// 				body:    signedTradeTxRequest,
+	// 				headers: { 'Content-Type': 'application/text' },
+	// 			}
+	// 		)
+	// 		let requestRecievedTime = Date.now()
+	// 		console.log(`Time taken for request: ${requestRecievedTime-requestSubmissionTime} ms`)
+	// 		response = await response.json()
+	// 		// Confirm the request and its response were saved
+    //         let [ savedRequest ] = await csv().fromFile(
+    //             config.constants.paths.requests
+    //         )
+    //         expect(savedRequest.method).to.equal('backrunRequest')
+    //         expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
+    //         expect(savedRequest.response).to.equal(JSON.stringify(response))
+    //         expect(typeof savedRequest.id == 'string').to.be.true
+    //         expect(isNumeric(savedRequest.blockNumber)).to.be.true
+    //         expect(isNumeric(savedRequest.timestampRecv)).to.be.true
+    //         expect(isNumeric(savedRequest.timestampResp)).to.be.true
+	// 	})
 	
-		it('Request to /backrunRequest in invalid format shall be rejected', async () => {
-            let signedTradeTxRequest = 'this is not a hex string'
-			let response = await fetch(
-				'http://localhost:8888/backrunRequest', 
-				{
-					method: 'post',
-					body:    signedTradeTxRequest,
-					headers: { 'Content-Type': 'application/text' },
-				}
-			)
-			response = await response.json()
-			// Confirm the request and its response were saved
-            let [ savedRequest ] = await csv().fromFile(
-                config.constants.paths.requests
-            )
-            expect(savedRequest.method).to.equal('backrunRequest')
-            expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
-            expect(savedRequest.response).to.equal(JSON.stringify(response))
-            expect(typeof savedRequest.id == 'string').to.be.true
-            expect(isNumeric(savedRequest.blockNumber)).to.be.true
-            expect(isNumeric(savedRequest.timestampRecv)).to.be.true
-            expect(isNumeric(savedRequest.timestampResp)).to.be.true
-		})
+	// 	it('Request to /backrunRequest in invalid format shall be rejected', async () => {
+    //         let signedTradeTxRequest = 'this is not a hex string'
+	// 		let response = await fetch(
+	// 			'http://localhost:8888/backrunRequest', 
+	// 			{
+	// 				method: 'post',
+	// 				body:    signedTradeTxRequest,
+	// 				headers: { 'Content-Type': 'application/text' },
+	// 			}
+	// 		)
+	// 		response = await response.json()
+	// 		// Confirm the request and its response were saved
+    //         let [ savedRequest ] = await csv().fromFile(
+    //             config.constants.paths.requests
+    //         )
+    //         expect(savedRequest.method).to.equal('backrunRequest')
+    //         expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
+    //         expect(savedRequest.response).to.equal(JSON.stringify(response))
+    //         expect(typeof savedRequest.id == 'string').to.be.true
+    //         expect(isNumeric(savedRequest.blockNumber)).to.be.true
+    //         expect(isNumeric(savedRequest.timestampRecv)).to.be.true
+    //         expect(isNumeric(savedRequest.timestampResp)).to.be.true
+	// 	})
 
 	})
 

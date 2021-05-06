@@ -147,6 +147,8 @@ async function handleBlockUpdate(blockNumber) {
         // Execute only the best opportunity found 
         // TODO: In the future handle more opportunities at once
         await handleOpp(blockNumber, [opps[0]])
+        // Log to csv
+        utils.logOpps(opps, blockNumber)
     }
     await updateBotBal()
 }
@@ -160,6 +162,7 @@ async function handleOpp(blockNumber, opps) {
     try {
         let response = await txManager.executeBundles(opps, blockNumber)
         opps.forEach(printOpportunityInfo)
+        
         console.log(response)  // Response from Archer
     }
     catch (error) {
@@ -178,6 +181,7 @@ async function backrunRequest(rawTxRequest, blockNumber) {
     let opps = getOppsForRequest(request)
     if (opps.length>0) {
         opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
+        console.log(opps[0])
         // Get bundles only for the best opportunity found 
         // TODO: In the future handle more opportunities at once
         let bundle = await txManager.oppsToBundle([ opps[0] ], blockNumber)
@@ -185,6 +189,8 @@ async function backrunRequest(rawTxRequest, blockNumber) {
             bundle, 
             blockNumber+1
         )
+        console.log(opps[0])
+        utils.logOpps(opps, blockNumber)  // Doesnt wait for it
         return archerApiParams
     } else {
         console.log('No opportunities found')

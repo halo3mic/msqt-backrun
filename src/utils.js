@@ -132,7 +132,7 @@ function logRequest(
         recvTimestamp, 
         respTimestamp
     ) {
-        logRowsToCsv([{
+        logRowsToCsv(config.constants.paths.requests, [{
             id: idFromVals(arguments), 
             blockNumber: recvBlockHeight,
             timestampRecv: recvTimestamp, 
@@ -140,7 +140,22 @@ function logRequest(
             method,
             rawTx, 
             response: JSON.stringify(response)
-        }], config.constants.paths.requests)
+        }])
+}
+
+function logOpps(opps, blockNumber) {
+    logRowsToCsv(config.constants.paths.opps, opps.map(opp => {
+        return {
+            id: idFromVals(arguments),
+            blockNumber, 
+            path: opp.pathId,
+            grossProfit: opp.grossProfit, 
+            netProfit: opp.netProfit, 
+            gasAmount: opp.gasAmount, 
+            inputAmount: opp.inputAmount, 
+            backrunTxs: opp.backrunTxs.join(',')
+        }
+    }))
 }
 
 /**
@@ -149,7 +164,7 @@ function logRequest(
  * @param {Array} rows Rows to save
  * @param {String} saveTo Path to CSV file
  */
- function logRowsToCsv(rows, saveTo) {
+ function logRowsToCsv(saveTo, rows) {
     let writer = csvWriter()
     let headers = {sendHeaders: false}
     if (!fs.existsSync(saveTo))
@@ -224,6 +239,7 @@ module.exports = {
     idFromVals,
     logRequest,
     invertMap,
+    logOpps,
     sleep, 
     isHex
 }

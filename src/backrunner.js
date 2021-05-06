@@ -98,7 +98,7 @@ function decryptRawTx(rawTx) {
             return { txRequest, callArgs, txHash, sender }
         }
     }
-    return { txRequest, txHash, sender }
+    return { txRequest, txHash, sender, rawTx }
 }
 
 /**
