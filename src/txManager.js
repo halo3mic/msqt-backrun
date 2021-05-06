@@ -14,22 +14,22 @@ function init(provider, signer) {
 }
 
 /**
- * Convert opportunities into batches and either simulate or submit them
+ * Convert opportunities into bundles and either simulate or submit them
  * Return network response
  * @param {Array} opps 
  * @param {Number} blockNumber 
  * @returns {Object}
  */
-async function executeBatches(opps, blockNumber) {
+async function executeBundles(opps, blockNumber) {
     let bundle = await oppsToBundle(opps, blockNumber)
     if (bundle.length>0) {
         try {
             if (process.argv.includes('--call')) {
-                console.log('Calling batching...')
-                return callBatches(bundle, blockNumber+1)
+                console.log('Calling bundle...')
+                return callBundles(bundle, blockNumber+1)
             } else {
-                console.log('Sending batches...')
-                return sendBatches(bundle, blockNumber+1)
+                console.log('Sending bundle...')
+                return sendBundles(bundle, blockNumber+1)
             }
         } catch (e) {
             console.log(e)
@@ -67,7 +67,7 @@ async function oppsToBundle(opps, blockNumber) {
  * @param {Boolean} debugOnly 
  * @returns {Object}
  */
-async function sendBatches(bundle, targetBlock, debugOnly=false) {
+async function sendBundles(bundle, targetBlock, debugOnly=false) {
     let archerApiParams = await getArcherSendBundleParams(bundle, targetBlock)
     if (debugOnly) {
         return archerApiParams
@@ -87,7 +87,7 @@ async function sendBatches(bundle, targetBlock, debugOnly=false) {
  * @param {Boolean} debugOnly 
  * @returns {Object}
  */
-async function callBatches(bundles, targetBlock, debugOnly=false) {
+async function callBundles(bundles, targetBlock, debugOnly=false) {
     let ethCall = await getArcherCallBundleParams(bundles, targetBlock)
     let inter = ethers.utils.id(JSON.stringify(ethCall))
     let signature = await SIGNER.signMessage(inter)
@@ -271,8 +271,8 @@ async function formTipperTx(opp) {
 module.exports = { 
     getArcherSendBundleParams,
     formDispatcherTx,
-    executeBatches,
+    executeBundles,
     oppsToBundle,
-    sendBatches,
+    sendBundles,
     init, 
 }
