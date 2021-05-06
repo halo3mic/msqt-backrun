@@ -9,9 +9,11 @@ const txMng = require('../src/txManager')
 const server = require('../src/server')
 const arbbot = require('../src/arbbot')
 const config = require('../src/config')
+const utils = require('../src/utils')
 const fetch = require('node-fetch')
 const csv = require('csvtojson')
-const fs = require('fs')
+const fs = require('fs');
+
 
 const ZERO = ethers.constants.Zero
 
@@ -85,9 +87,11 @@ describe('Logging', () => {
             config.constants.paths.requests = __dirname + '/.test.requests.csv'
 		})
 
-        afterEach(() => {
+        afterEach(async () => {
             // Clean the test logs
             fs.unlinkSync(config.constants.paths.requests)
+            // Wait to resolve all 
+            await utils.sleep(1)
         })
 
 		it('Request to /submitRequest and its response should be saved locally (success)', async () => {
@@ -131,6 +135,9 @@ describe('Logging', () => {
 			expect(response.status).to.equal(1)
 			expect(response.msg).to.equal('OK')
 			// Confirm the request and its response were saved
+            await server.logger.flush()  // Flush data from memory to disk
+            expect(server.logger.getRequests().length).to.equal(0)  // Make sure temp memory is cleared
+            console.log(`Trying to read file saved at ${config.constants.paths.requests}`)
             let [ savedRequest ] = await csv().fromFile(
                 config.constants.paths.requests
             )
@@ -155,6 +162,8 @@ describe('Logging', () => {
 			)
 			response = await response.json()
             // Confirm the request and its response were saved
+            await server.logger.flush()  // Flush data from memory to disk
+            expect(server.logger.getRequests().length).to.equal(0)  // Make sure temp memory is cleared
             let [ savedRequest ] = await csv().fromFile(
                 config.constants.paths.requests
             )
@@ -209,6 +218,8 @@ describe('Logging', () => {
 			console.log(`Time taken for request: ${requestRecievedTime-requestSubmissionTime} ms`)
 			response = await response.json()
 			// Confirm the request and its response were saved
+            await server.logger.flush()  // Flush data from memory to disk
+            expect(server.logger.getRequests().length).to.equal(0)  // Make sure temp memory is cleared
             let [ savedRequest ] = await csv().fromFile(
                 config.constants.paths.requests
             )
@@ -265,6 +276,8 @@ describe('Logging', () => {
 			console.log(`Time taken for request: ${requestRecievedTime-requestSubmissionTime} ms`)
 			response = await response.json()
 			// Confirm the request and its response were saved
+            await server.logger.flush()  // Flush data from memory to disk
+            expect(server.logger.getRequests().length).to.equal(0)  // Make sure temp memory is cleared
             let [ savedRequest ] = await csv().fromFile(
                 config.constants.paths.requests
             )
@@ -289,6 +302,8 @@ describe('Logging', () => {
 			)
 			response = await response.json()
 			// Confirm the request and its response were saved
+            await server.logger.flush()  // Flush data from memory to disk
+            expect(server.logger.getRequests().length).to.equal(0)  // Make sure temp memory is cleared
             let [ savedRequest ] = await csv().fromFile(
                 config.constants.paths.requests
             )

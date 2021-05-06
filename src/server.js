@@ -4,6 +4,7 @@ const { provider, signer } = require('./provider').ws
 const instrMng = require('./instrManager')
 const arbbot = require('./arbbot')
 const config = require('./config')
+const logger = require('./logger')
 const utils = require('./utils')
 
 let BLOCK_HEIGHT
@@ -106,7 +107,7 @@ async function startRequestUpdates() {
         } finally {
             res.json(response)
             let returnTimestamp = Date.now()
-            utils.logRequest(
+            logger.logRequest(
                 'submitRequest',
                 request, 
                 response,
@@ -143,7 +144,7 @@ async function startRequestUpdates() {
         } finally {
             res.json(response)
             let returnTimestamp = Date.now()
-            utils.logRequest(
+            logger.logRequest(
                 'backrunRequest',
                 request, 
                 response,
@@ -166,6 +167,7 @@ async function main() {
 module.exports = { 
     startRequestUpdates,
     startListeners,
+    logger,
     arbbot,
     main, 
     init, 

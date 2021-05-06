@@ -9,6 +9,7 @@ const txManager = require('./txManager')
 const config = require('./config')
 const utils = require('./utils')
 const math = require('./unimath')
+const { logger } = require('./server')
 
 // Global vars
 let GAS_PRICE
@@ -149,6 +150,7 @@ async function handleBlockUpdate(blockNumber) {
         await handleOpp(blockNumber, [opps[0]])
     }
     await updateBotBal()
+    await logger.flush()
 }
 
 /**
