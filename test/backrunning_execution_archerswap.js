@@ -146,16 +146,4 @@ describe('Execution', () => {
 			opps[0].netProfit, ethers.utils.parseEther('0.02')
 		)
 	}).timeout(1000000)
-
-	/*
-		// // Prepare for the trade by getting some tokens
-		// await topUpAccount(signer.address, txCallArgs.amountIn)
-		// expect(await ethers.provider.getBalance(signer.address)).to.equal(txCallArgs.amountIn)
-		// let WETH = new ethers.Contract(assets.WETH, config.abis['weth'], ethers.provider)
-		// await WETH.connect(signer).deposit({ value: txCallArgs.amountIn, gasPrice: ZERO }) // Wrap eth
-		// expect(await WETH.balanceOf(signer.address)).to.equal(txCallArgs.amountIn)
-		// await WETH.connect(signer).approve(config.constants.routers.archerswap, ethers.constants.MaxUint256, {gasPrice: ZERO})  // Approve weth for ArcherSwap
-		// expect(await WETH.allowance(signer.address, config.constants.routers.archerswap)).to.equal(ethers.constants.MaxUint256)
-	 */
-
 })

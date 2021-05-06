@@ -3,6 +3,7 @@ const csvWriter = require('csv-write-stream')
 const fetch = require('node-fetch')
 const ethers = require('ethers')
 require('dotenv').config()
+const md5 = require('md5')
 const fs = require('fs')
 
 const config = require('./config')
@@ -115,6 +116,31 @@ async function submitBundleToArcher({ ethCall, senderAddress, signature }) {
 }
 
 /**
+ * Log request to backrun tx-request and bot's response 
+ * @param {String} request Raw transaction to be backrun
+ * @param {Object} response Response sent to the sender
+ * @param {Integer} recvBlockHeight Block number when the request was recieved
+ * @param {Integer} recvTimestamp Time when the request was recieved [ms]
+ * @param {Integer} returnTimestamp Time when the response was sent [ms]
+ */
+function logRequest(
+        rawTx, 
+        response, 
+        recvBlockHeight, 
+        recvTimestamp, 
+        respTimestamp
+    ) {
+        logRowsToCsv([{
+            id: idFromVals(arguments), 
+            blockNumber: recvBlockHeight,
+            timestampRecv: recvTimestamp, 
+            timestampResp: respTimestamp, 
+            rawTx, 
+            response: JSON.stringify(response)
+        }], config.constants.paths.requests)
+}
+
+/**
  * Save rows in CSV file
  * If file doesn't exist method creates it with columns
  * @param {Array} rows Rows to save
@@ -174,6 +200,15 @@ function invertMap(mapping) {
     }))
 }
 
+/**
+ * Create unique id from passed values
+ * @param {Array} vals Args on which id should be based on
+ * @returns {String}
+ */
+function idFromVals(vals) {
+    return md5(JSON.stringify(vals))
+}
+
 module.exports = { 
     convertTxDataToByteCode, 
     submitBundleToArcher, 
@@ -183,6 +218,8 @@ module.exports = {
     normalizeUnits,
     fetchGasPrice, 
     logRowsToCsv, 
+    idFromVals,
+    logRequest,
     invertMap,
     sleep, 
     isHex

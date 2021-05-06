@@ -19,7 +19,7 @@
     "archerBundleEndpoint": "https://api.archerdao.io/v1/bundle/send",
     "gasPriceEndpoint": "https://www.gasnow.org/api/v3/gas/price", 
     "paths": {
-        "fails": "./logs/responsesFail.csv", 
+        "requests": "./logs/requests.csv", 
         "passes": "./logs/responsesPass.csv", 
         "requests": "./logs/requests.csv" 
     }

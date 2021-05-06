@@ -82,47 +82,73 @@ async function startRequestUpdates() {
     })
     app.post("/submitRequest", async (req, res) => {
         let request = req.body
+        let recvBlockHeight = BLOCK_HEIGHT  // Block height at which request was recieved
+        let recvTimestamp = Date.now()  // Time when request was recieved
+        let response
         try {
             if (utils.isHex(request)) {
                 arbbot.handleNewBackrunRequest(request)
-                res.json({
+                response = {
                     status: 1, 
                     msg: 'OK'
-                })
+                }
             } else {
-                res.json({
+                response = {
                     status: 0, 
                     msg: 'RequestError: Not in hex format'
-                })
+                }
             }
         } catch (e) {
-            res.json({
+            response = {
                 status: 0, 
                 msg: `InternalError:${e.msg}`
-            })
+            }
+        } finally {
+            res.json(response)
+            let returnTimestamp = Date.now()
+            utils.logRequest(
+                request, 
+                response,
+                recvBlockHeight, 
+                recvTimestamp, 
+                returnTimestamp
+            )
         }
     })
     app.post("/backrunRequest", async (req, res) => {
         let request = req.body
+        let recvBlockHeight = BLOCK_HEIGHT  // Block height at which request was recieved
+        let recvTimestamp = Date.now()  // Time when request was recieved
+        let response
         try {
             if (utils.isHex(request)) {
-                let result = await arbbot.backrunRequest(request, BLOCK_HEIGHT)
-                res.json({
+                let result = await arbbot.backrunRequest(request, recvBlockHeight)
+                response = {
                     status: 1,
                     msg: 'OK',
                     result
-                })
+                }
             } else {
-                res.json({
+                response = {
                     status: 0, 
                     msg: 'RequestError: Not in hex format'
-                })
+                }
             }
         } catch (e) {
-            res.json({
+            response = {
                 status: 0, 
                 msg: `InternalError:${e.msg}`
-            })
+            }
+        } finally {
+            res.json(response)
+            let returnTimestamp = Date.now()
+            utils.logRequest(
+                request, 
+                response,
+                recvBlockHeight, 
+                recvTimestamp, 
+                returnTimestamp
+            )
         }
     })
     app.listen(port, () => {
