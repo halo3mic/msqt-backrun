@@ -107,10 +107,8 @@ describe('Execution', () => {
 		let opps = backrunRequests.map(arbbot.getOppsForRequest).flat()
 		expect(opps.length).to.above(0)
 		opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
-		let blockNumber = await ethers.provider.getBlockNumber()
-		let dispatcherTx = await txMng.buildDispatcherTx(
-			opps[0], 
-			blockNumber,
+		let dispatcherTx = await txMng.formDispatcherTx(
+			opps[0],
 			await botOperator.getTransactionCount()
 		)
 		// Execute trade tx

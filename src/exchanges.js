@@ -43,7 +43,7 @@ class Uniswap {
         return reserves
     }
 
-    async formQueryTx(inputAmount, path) {
+    async formQuery(inputAmount, path) {
         // Input amount needs to in base units of asset (eg. wei)
         const queryContract = new ethers.Contract(
             config.constants.routers.unishProxy, 
@@ -60,7 +60,7 @@ class Uniswap {
         return { tx, inputLocs }
     }
 
-    async formTradeTx(inputAmount, tokenPath, outputAmount=0, timeShift=300) {
+    async formTrade(inputAmount, tokenPath, outputAmount=0, timeShift=300) {
         const baseAddress = instrMng.getTokenById(config.settings.arb.baseAsset).address
         const tradeTimeout = Math.round((Date.now()/1000) + timeShift)
         if (tokenPath[0]==baseAddress) {

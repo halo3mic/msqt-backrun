@@ -1,7 +1,6 @@
 const ethers = require('ethers')
 
 const instrMng = require('./instrManager')
-const config = require('./config')
 const { pools, tokens } = instrMng
 const { BigNumber } = ethers
 
