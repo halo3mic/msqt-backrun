@@ -8,6 +8,7 @@ const pools = require('../config/pools.json')
 const tokens = require('../config/tokens.json')
 const { getExchanges } = require('./exchanges')
 const math = require('./unimath')
+const utils = require('./utils')
 
 let routerDexMap = Object.fromEntries(Object.entries(getExchanges()).map(entry => {
     return [ entry[1].routerAddress, entry[0] ]
@@ -171,8 +172,8 @@ function enrichCallArgs(callArgs) {
         return
     }
     // Normalize amounts
-    let amountIn = normalizeUnits(callArgs.amountIn, tknPath[0].decimal)
-    let amountOutMin = normalizeUnits(callArgs.amountOut, tknPath[tknPath.length-1].decimal)
+    let amountIn = utils.normalizeUnits(callArgs.amountIn, tknPath[0].decimal)
+    let amountOutMin = utils.normalizeUnits(callArgs.amountOut, tknPath[tknPath.length-1].decimal)
     return {
         tknPath: tknPath.map(t=>t.id),
         recvTimestamp: Date.now(),

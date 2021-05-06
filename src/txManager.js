@@ -74,7 +74,7 @@ async function sendBatches(bundle, targetBlock, debugOnly=false) {
         return archerApiParams
     }
     let t0 = Date.now()
-    let response = await utils.submitBatchesToArcher(archerApiParams)
+    let response = await utils.submitBundleToArcher(archerApiParams)
     response = await response.json()
     let t1 = Date.now()
     console.log(`Latency: ${t1-t0} ms`)
@@ -103,7 +103,7 @@ async function callBatches(bundles, targetBlock, debugOnly=false) {
         return archerApiParams
     }
     let t0 = Date.now()
-    let response = await utils.submitBatchesToArcher(archerApiParams)
+    let response = await utils.submitBundleToArcher(archerApiParams)
     response = await response.json()
     let t1 = Date.now()
     console.log(`Latency: ${t1-t0} ms`)
@@ -213,7 +213,7 @@ async function formTrade(opp) {
         tknAddresses = tkns.map(t => t.address)
         if (i==0) {
             amountIn = opp.swapAmounts[i]
-            amountIn = unnormalizeUnits(amountIn, tkns[0].decimal)
+            amountIn = utils.unnormalizeUnits(amountIn, tkns[0].decimal)
         } else {
             amountIn = ethers.constants.Zero  // Pass in zero to replace this amount with query result during execution
         }
@@ -243,7 +243,7 @@ async function formQuery(opp) {
         tknAddresses = tkns.map(t => t.address)
         if (i==0) {
             amountIn = opp.swapAmounts[i]
-            amountIn = unnormalizeUnits(amountIn, tkns[0].decimal)
+            amountIn = utils.unnormalizeUnits(amountIn, tkns[0].decimal)
         } else {
             amountIn = ethers.constants.Zero  // Pass in zero to replace this amount with query result during execution
         }
@@ -269,20 +269,6 @@ async function formTipperTx(opp) {
     return dispatcherTipper.populateTransaction.tip(
         opp.inputAmount, 
         config.settings.arb.tipperShareRate
-    )
-}
-
-/**
- * Return unnormalized number
- * Convert number from 18 units to unique decimals
- * @param {BigNumber} num - Amount
- * @param {Number} dec - Token decimals
- * @returns {BigNumber}
- */
- function unnormalizeUnits(num, dec) {
-    return ethers.utils.parseUnits(
-        ethers.utils.formatUnits(num), 
-        dec
     )
 }
 

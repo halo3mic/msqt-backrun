@@ -16,7 +16,8 @@
         "crypto": "0xCeB90E4C17d626BE0fACd78b79c9c87d7ca181b3"
     }, 
     "uniswapSyncTopic": "0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1",  
-    "archerBatchesEndpoint": "https://api.archerdao.io/v1/bundle/send", 
+    "archerBundleEndpoint": "https://api.archerdao.io/v1/bundle/send",
+    "gasPriceEndpoint": "https://www.gasnow.org/api/v3/gas/price", 
     "paths": {
         "fails": "./logs/responsesFail.csv", 
         "passes": "./logs/responsesPass.csv", 

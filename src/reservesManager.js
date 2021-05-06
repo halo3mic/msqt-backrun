@@ -2,6 +2,7 @@ const ethers = require('ethers')
 
 const instrMng = require('./instrManager')
 const { pools, tokens } = instrMng
+const utils = require('./utils')
 const { BigNumber } = ethers
 
 let RESERVES
@@ -39,10 +40,10 @@ async function init(provider, paths) {
     const tkn1 = tokens.filter(t=>t.id==pool.tkns[1].id)[0]
 
     let r1 = reservesRaw.then(
-            r => normalizeUnits(r[0], tkn0.decimal)
+            r => utils.normalizeUnits(r[0], tkn0.decimal)
         )
     let r2 = reservesRaw.then(
-            r => normalizeUnits(r[1], tkn1.decimal)
+            r => utils.normalizeUnits(r[1], tkn1.decimal)
         )
     return Promise.all([ r1, r2 ]).then(result => {
         let reserves = {}
@@ -91,19 +92,6 @@ async function init(provider, paths) {
     result[tkn0.id] = r0
     result[tkn1.id] = r1
     RESERVES[pool.id] = result
-}
-
-/**
- * Return normalized number
- * @param {ethers.BigNumber} num - Amount
- * @param {ethers.BigNumber} dec - Token decimals
- * @returns {ethers.BigNumber}
- */
- function normalizeUnits(num, dec) {
-    // Convert everything to 18 units
-    return ethers.utils.parseUnits(
-        ethers.utils.formatUnits(num, dec)
-    )
 }
 
 /**
