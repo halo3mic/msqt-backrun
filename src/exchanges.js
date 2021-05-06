@@ -165,15 +165,15 @@ class Sashimiswap extends Uniswap {
 }
 
 function getExchanges(provider) {
-    return {
-        sashimiswap: new Sashimiswap(provider),
-        sushiswap: new Sushiswap(provider), 
-        whiteswap: new Whiteswap(provider), 
-        linkswap: new Linkswap(provider), 
-        polyient: new Polyient(provider), 
-        uniswap: new Uniswap(provider), 
-        crypto: new Crypto(provider), 
-    }   
+    return Object.fromEntries([
+        new Sashimiswap(provider),
+        new Sushiswap(provider), 
+        new Whiteswap(provider), 
+        new Linkswap(provider), 
+        new Polyient(provider), 
+        new Uniswap(provider), 
+        new Crypto(provider), 
+    ].map(dex => [ dex.key, dex ]))
 }
 
 module.exports = { getExchanges }
