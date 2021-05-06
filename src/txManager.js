@@ -4,7 +4,6 @@ const { getExchanges } = require('./exchanges')
 const instrMng = require('./instrManager')
 const config = require('./config')
 const utils = require('./utils')
-const { pools, tokens } = instrMng
 
 var SIGNER, PROVIDER, EXCHANGES
 
@@ -75,7 +74,6 @@ async function sendBatches(bundle, targetBlock, debugOnly=false) {
     }
     let t0 = Date.now()
     let response = await utils.submitBundleToArcher(archerApiParams)
-    response = await response.json()
     let t1 = Date.now()
     console.log(`Latency: ${t1-t0} ms`)
     return response
@@ -104,12 +102,10 @@ async function callBatches(bundles, targetBlock, debugOnly=false) {
     }
     let t0 = Date.now()
     let response = await utils.submitBundleToArcher(archerApiParams)
-    response = await response.json()
     let t1 = Date.now()
     console.log(`Latency: ${t1-t0} ms`)
     return response
 }
-
 
 /**
  * Return arguments required for `eth_sendBundle` request to Archer network

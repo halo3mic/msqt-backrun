@@ -3,7 +3,6 @@ const ethers = require('ethers')
 const instrMng = require('./instrManager')
 const { pools, tokens } = instrMng
 const utils = require('./utils')
-const { BigNumber } = ethers
 
 let RESERVES
 let PROVIDER
@@ -84,8 +83,8 @@ async function init(provider, paths) {
     const pool = pools.filter(p=>p.address==poolAddress)[0]
     const tkn0 = tokens.filter(t=>t.id==pool.tkns[0].id)[0]
     const tkn1 = tokens.filter(t=>t.id==pool.tkns[1].id)[0]
-    let r0 = BigNumber.from(reservesBytes.substr(0, 66))
-    let r1 = BigNumber.from('0x' + reservesBytes.substr(66))
+    let r0 = ethers.BigNumber.from(reservesBytes.substr(0, 66))
+    let r1 = ethers.BigNumber.from('0x' + reservesBytes.substr(66))
     r0 = normalizeUnits(r0, tkn0.decimal)
     r1 = normalizeUnits(r1, tkn1.decimal)
     let result = {}

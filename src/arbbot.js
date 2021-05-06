@@ -29,7 +29,6 @@ async function init(provider, signer, startGasPrice, whitelistedPaths) {
     _paths = whitelistedPaths || instrMng.filterPathsByConfig(_paths)
     let _reserves = await reservesManager.init(provider, _paths)
     txManager.init(provider, signer)
-    backrunner.init(provider)
     _setReserves(_reserves)  // Load reserves
     _setProvider(provider)
     await updateBotBal()  // Query dispatcher balance
@@ -37,6 +36,7 @@ async function init(provider, signer, startGasPrice, whitelistedPaths) {
     _paths = instrMng.filterPathsWithEmptyPool(_paths, _reserves)
     _paths = getPathsWithGasEstimate(_paths)
     _setPaths(_paths)
+    backrunner.init(provider, _paths)
 }
 
 /**

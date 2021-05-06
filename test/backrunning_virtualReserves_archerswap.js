@@ -56,7 +56,6 @@ describe('Virtual reserves', () => {
 		
 		await reservesMng.init(ethers.provider, [])
 		txMng.init(ethers.provider, botOperator)
-		backrunner.init(ethers.provider)  // Set a provider
 	})
 
 	beforeEach(async () => {
@@ -65,7 +64,8 @@ describe('Virtual reserves', () => {
 			value: ethers.utils.parseEther('1000'),
 			to: signer.address, 
 		}).then(async txRequest => txRequest.wait())
-		// Restart requests pool with each test
+		// Restart backrunner for each request
+		backrunner.init(ethers.provider)  // Set a provider
 		backrunner.cleanRequestsPool()
 	})
 
@@ -640,7 +640,7 @@ describe('Virtual reserves', () => {
 			{ value: amountIn.add(tipAmount) }
 		)
 		// Sushiswap trade
-		amountIn = ethers.utils.parseUnits('20')
+		amountIn = ethers.utils.parseUnits('2000')
 		let tradeTxRequest2 = await archerswapRouter.populateTransaction['swapExactETHForTokensWithTipAmount'](
 			unilikeRouters.sushiswap,
 			[

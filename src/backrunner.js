@@ -1,44 +1,30 @@
 const unsign = require('@warren-bank/ethereumjs-tx-unsign')
-const EthereumTx = require('ethereumjs-tx').Transaction
 const config = require('./config')
 const ethers = require('ethers')
-const { BigNumber } = ethers
 
-const pools = require('../config/pools.json')
-const tokens = require('../config/tokens.json')
-const { getExchanges } = require('./exchanges')
+const instrMng = require('./instrManager')
 const math = require('./unimath')
 const utils = require('./utils')
 
-let routerDexMap = Object.fromEntries(Object.entries(getExchanges()).map(entry => {
-    return [ entry[1].routerAddress, entry[0] ]
-}))
-
-let BACKRUN_REQUESTS = []
+let routerDexMap = utils.invertMap(config.constants.routers)
+let BACKRUN_REQUESTS = []  // Local mempool
 let PROVIDER
+let validPools  // Addresses for pools that are used by valid paths
 
-function init(provider) {
+function init(provider, whitelistedPaths) {
+    whitelistedPaths = whitelistedPaths || instrMng.paths  // Optional argument
+    validPools = instrMng.getPoolsForPaths(whitelistedPaths)
     PROVIDER = provider
 }
 
-function getSignerFromRawTx(rawTx) {
-    return ethers.utils.getAddress(
-        '0x' + new EthereumTx(rawTx).getSenderAddress().toString('hex')
-    )
-}
-
+/**
+ * Return decrypted calldata if it is supported by Uniswap ABI
+ * Only whitelisted methods are supported
+ * @param {Object} txRequest 
+ * @returns Object
+ */
 function decryptUnilikeTx(txRequest) {
-    let supportedMethods = [
-        'swapExactTokensForTokens',
-        'swapTokensForExactTokens',
-        'swapExactETHForTokens',
-        'swapTokensForExactETH',
-        'swapExactTokensForETH',
-        'swapETHForExactTokens',
-        'swapExactTokensForTokensSupportingFeeOnTransferTokens',
-        'swapExactETHForTokensSupportingFeeOnTransferTokens',
-        'swapExactTokensForETHSupportingFeeOnTransferTokens'
-    ] // TODO: Add to config
+    let supportedMethods = config.settings.arb.supportedMethods.unilike
     let abi = new ethers.utils.Interface(config.abis['uniswapRouter'])
     // Try/catch determines if transaction fits a type
     try {
@@ -52,7 +38,7 @@ function decryptUnilikeTx(txRequest) {
         return null
     }
     let callArgs = {
-        amountIn: BigNumber.from(txDescription.args.amountIn || txRequest.value),
+        amountIn: ethers.BigNumber.from(txDescription.args.amountIn || txRequest.value),
         amountOut: txDescription.args.amountOutMin,
         method: txDescription.functionFragment.name,
         tknPath: txDescription.args.path,
@@ -62,30 +48,15 @@ function decryptUnilikeTx(txRequest) {
     return callArgs
 }
 
+/**
+ * Return decrypted calldata if it is supported by ArcherSwap ABI
+ * Only whitelisted methods are supported
+ * @param {Object} txRequest 
+ * @returns Object
+ */
 function decryptArcherswapTx(txRequest) {
     let abi = new ethers.utils.Interface(config.abis['archerswapRouter'])
-    let supportedMethods = [
-        'swapExactTokensForETHAndTipAmount',
-        'swapExactTokensForETHWithPermitAndTipAmount',
-        'swapExactTokensForETHAndTipPct',
-        'swapExactTokensForETHWithPermitAndTipPct',
-        'swapTokensForExactETHAndTipAmount',
-        'swapTokensForExactETHWithPermitAndTipAmount',
-        'swapTokensForExactETHAndTipPct',
-        'swapTokensForExactETHWithPermitAndTipPct',
-        'swapExactETHForTokensWithTipAmount',
-        'swapExactETHForTokensWithTipPct',
-        'swapETHForExactTokensWithTipAmount',
-        'swapETHForExactTokensWithTipPct',
-        'swapExactTokensForTokensWithTipAmount',
-        'swapExactTokensForTokensWithPermitAndTipAmount',
-        'swapExactTokensForTokensWithTipPct',
-        'swapExactTokensForTokensWithPermitAndTipPct',
-        'swapTokensForExactTokensWithTipAmount',
-        'swapTokensForExactTokensWithPermitAndTipAmount',
-        'swapTokensForExactTokensWithTipPct',
-        'swapTokensForExactTokensWithPermitAndTipPct',
-    ] // TODO: Add to config
+    let supportedMethods = config.settings.arb.supportedMethods.archerswap
     // Try/catch determines if transaction fits a type
     try {
         var txDescription = abi.parseTransaction(txRequest)
@@ -97,7 +68,7 @@ function decryptArcherswapTx(txRequest) {
         return null
     }
     let callArgs = {
-        amountIn: BigNumber.from(txDescription.args.trade.amountIn || txRequest.value),
+        amountIn: ethers.BigNumber.from(txDescription.args.trade.amountIn || txRequest.value),
         amountOut: txDescription.args.trade.amountOut,
         method: txDescription.functionFragment.name,
         tknPath: txDescription.args.trade.path,
@@ -107,9 +78,15 @@ function decryptArcherswapTx(txRequest) {
     return callArgs
 }
 
+/**
+ * Unsign transaction and decrypt its calldata if contract type supported
+ * Return unsigned tx, singer address and the hash of signature
+ * @param {String} rawTx 
+ * @returns Object
+ */
 function decryptRawTx(rawTx) {
     let txHash = ethers.utils.keccak256(rawTx)
-    let sender = getSignerFromRawTx(rawTx)
+    let sender = utils.getSignerFromRawTx(rawTx)
     let txRequest = unsign(rawTx).txData
     txRequest.to = ethers.utils.getAddress(txRequest.to)
     txRequest.nonce = parseInt(txRequest.nonce, 16)
@@ -124,10 +101,15 @@ function decryptRawTx(rawTx) {
     return { txRequest, txHash, sender }
 }
 
+/**
+ * Return sequence of pools between tokens in token path for a dex 
+ * @param {String} dexName Dex key
+ * @param {Array} tknPath Token ids
+ * @returns {Array} Pool ids
+ */
 function findPoolsForTknPath(dexName, tknPath) {
-    // Tkn path is array of tkn ids
     let usedPools = []
-    let dexPools = pools.filter(p => p.exchange==dexName)
+    let dexPools = validPools.filter(p => p.exchange==dexName)
     for (let i=0; i<tknPath.length-1; i++) {
         let [ tkn0, tkn1 ] = tknPath.slice(i, i+2)
         let pool = dexPools.find(
@@ -142,29 +124,15 @@ function findPoolsForTknPath(dexName, tknPath) {
     return usedPools
 }
 
-// TODO: Move to utils
 /**
- * Return normalized number
- * @param {ethers.BigNumber} num - Amount
- * @param {ethers.BigNumber} dec - Token decimals
- * @returns {ethers.BigNumber}
- */
- function normalizeUnits(num, dec) {
-    // Convert everything to 18 dec
-    return ethers.utils.parseUnits(
-        ethers.utils.formatUnits(num, dec)
-    )
-}
-
-/**
- * Emrich call-args for backrun tx
+ * Return callArgs with formatted and additional data to call-args
  * @param {Object} callArgs 
  * @returns {Object}
  */
 function enrichCallArgs(callArgs) {
     // Only save request if it involves supported dex pool
     let tknPath = callArgs.tknPath.map(tknAddress => {
-        return tokens.find(t=>tknAddress==t.address)
+        return instrMng.getTokenByAddress(tknAddress)
     })
     let dexName = routerDexMap[callArgs.router]
     let usedPools = findPoolsForTknPath(dexName, tknPath.map(t=>t.id))
@@ -185,6 +153,10 @@ function enrichCallArgs(callArgs) {
     }
 }
 
+/**
+ * Add decrypted and enriched signed transction to the local mempool
+ * @param {String} rawTx 
+ */
 function handleNewBackrunRequest(rawTx) {
     // TODO: Set max size for requests pool
     let decrypted = decryptRawTx(rawTx)
@@ -216,6 +188,11 @@ function handleNewBackrunRequest(rawTx) {
     })
 }
 
+/**
+ * Check if a request fits conditions
+ * @param {Object} request 
+ * @returns {Boolean}
+ */
 async function isValidRequest(request) {
     // Skip and remove request if tx is past deadline
     if (request.callArgs.deadline<=Date.now()/1e3) {
@@ -250,6 +227,13 @@ async function isValidRequest(request) {
     return true
 }
 
+/**
+ * Calulate the reserves after trade is executed 
+ * Return calculated reserves
+ * @param {Object} reserves Reserves for all supported pools
+ * @param {Object} callArgs Arguments with which the method was called 
+ * @returns {Object}
+ */
 function getVirtualReserves(reserves, callArgs) {
     let { amountIn, tknPath, poolIds: poolPath } = callArgs
     let amountOut

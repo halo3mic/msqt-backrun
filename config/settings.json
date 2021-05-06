@@ -19,6 +19,41 @@
             "T0077",
             "T0079"
         ], 
-        "emptyPoolThreshold": "10000000000000000000"
+        "emptyPoolThreshold": "10000000000000000000", 
+        "supportedMethods": {
+            "archerswap": [
+                "swapExactTokensForETHAndTipAmount",
+                "swapExactTokensForETHWithPermitAndTipAmount",
+                "swapExactTokensForETHAndTipPct",
+                "swapExactTokensForETHWithPermitAndTipPct",
+                "swapTokensForExactETHAndTipAmount",
+                "swapTokensForExactETHWithPermitAndTipAmount",
+                "swapTokensForExactETHAndTipPct",
+                "swapTokensForExactETHWithPermitAndTipPct",
+                "swapExactETHForTokensWithTipAmount",
+                "swapExactETHForTokensWithTipPct",
+                "swapETHForExactTokensWithTipAmount",
+                "swapETHForExactTokensWithTipPct",
+                "swapExactTokensForTokensWithTipAmount",
+                "swapExactTokensForTokensWithPermitAndTipAmount",
+                "swapExactTokensForTokensWithTipPct",
+                "swapExactTokensForTokensWithPermitAndTipPct",
+                "swapTokensForExactTokensWithTipAmount",
+                "swapTokensForExactTokensWithPermitAndTipAmount",
+                "swapTokensForExactTokensWithTipPct",
+                "swapTokensForExactTokensWithPermitAndTipPct"
+            ], 
+            "unilike": [
+                "swapExactTokensForTokens",
+                "swapTokensForExactTokens",
+                "swapExactETHForTokens",
+                "swapTokensForExactETH",
+                "swapExactTokensForETH",
+                "swapETHForExactTokens",
+                "swapExactTokensForTokensSupportingFeeOnTransferTokens",
+                "swapExactETHForTokensSupportingFeeOnTransferTokens",
+                "swapExactTokensForETHSupportingFeeOnTransferTokens"
+            ]
+        }
     }
 }

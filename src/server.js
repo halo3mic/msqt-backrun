@@ -13,7 +13,7 @@ async function init() {
     let startGasPrice = await utils.fetchGasPrice(config.settings.gas.gasSpeed)
     await arbbot.init(provider, signer, startGasPrice)
     BLOCK_HEIGHT = await provider.getBlockNumber()
-    POOLS = instrMng.getPoolAddressesForPaths(arbbot.getPaths())
+    POOLS = instrMng.getPoolsForPaths(arbbot.getPaths()).map(p => p.address)
 }
 
 function startListeners() {

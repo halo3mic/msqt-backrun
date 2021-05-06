@@ -65,7 +65,8 @@ describe('Virtual reserves', () => {
 			value: ethers.utils.parseEther('1000'),
 			to: signer.address, 
 		}).then(async txRequest => txRequest.wait())
-		// Restart requests pool with each test
+		// Restart backrunner for each request
+		backrunner.init(ethers.provider)  // Set a provider
 		backrunner.cleanRequestsPool()
 	})
 

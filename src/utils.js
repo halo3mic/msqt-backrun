@@ -1,3 +1,4 @@
+const EthereumTx = require('ethereumjs-tx').Transaction
 const csvWriter = require('csv-write-stream')
 const fetch = require('node-fetch')
 const ethers = require('ethers')
@@ -131,6 +132,17 @@ async function submitBundleToArcher({ ethCall, senderAddress, signature }) {
 }
 
 /**
+ * Return account address that signed the signed transaction
+ * @param {String} rawTx 
+ * @returns {String}
+ */
+function getSignerFromRawTx(rawTx) {
+    return ethers.utils.getAddress(
+        '0x' + new EthereumTx(rawTx).getSenderAddress().toString('hex')
+    )
+}
+
+/**
  * Halt execution for some amount of time
  * @param {Integer} ms Amount of time to halt the execution (miliseconds)
  * @returns 
@@ -150,14 +162,28 @@ function isHex(string) {
     return /^0x[0-9A-Fa-f]+$/.test(string)
 }
 
+/**
+ * Return inverted object (swap keys for their corresponding values)
+ * Only works with injective mappings
+ * @param {Object} mapping Dictionary to be inverted 
+ * @returns {Object} Inverted original dictionary
+ */
+function invertMap(mapping) {
+    return Object.fromEntries(Object.entries(mapping).map(entry => {
+        return [ entry[1], entry[0] ]
+    }))
+}
+
 module.exports = { 
     convertTxDataToByteCode, 
     submitBundleToArcher, 
+    getSignerFromRawTx,
     estimateGasAmount,
     unnormalizeUnits,
     normalizeUnits,
     fetchGasPrice, 
     logRowsToCsv, 
+    invertMap,
     sleep, 
     isHex
 }
