@@ -50,7 +50,7 @@ describe('Request validity', () => {
 	before(async () => {
 		genNewAccount = await makeAccountGen()
 		signer = ethers.Wallet.createRandom().connect(ethers.provider)  // Create an account to sign txs
-		botOperator = new ethers.Wallet(config.PRIVATE_KEY, ethers.provider)  // Interact with dispatcher
+		botOperator = new ethers.Wallet(config.settings.network.privateKey, ethers.provider)  // Interact with dispatcher
 		bank = genNewAccount()  // Source of test eth
 		await impersonateAccount(signer.address)
 		
@@ -81,7 +81,7 @@ describe('Request validity', () => {
 		}
 		let UniswapRouter = new ethers.Contract(
 			txCallArgs.router,
-			ABIS['uniswapRouter'] 
+			abis['uniswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
@@ -134,7 +134,7 @@ describe('Request validity', () => {
 		}
 		let UniswapRouter = new ethers.Contract(
 			txCallArgs.router,
-			ABIS['uniswapRouter'] 
+			abis['uniswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
@@ -179,7 +179,7 @@ describe('Request validity', () => {
 		}
 		let UniswapRouter = new ethers.Contract(
 			txCallArgs.router,
-			ABIS['uniswapRouter'] 
+			abis['uniswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
@@ -227,7 +227,7 @@ describe('Request validity', () => {
 		}
 		let UniswapRouter = new ethers.Contract(
 			txCallArgs.router,
-			ABIS['uniswapRouter'] 
+			abis['uniswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](

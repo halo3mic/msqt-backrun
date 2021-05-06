@@ -50,13 +50,12 @@ describe('Virtual reserves', () => {
 	before(async () => {
 		genNewAccount = await makeAccountGen()
 		signer = ethers.Wallet.createRandom().connect(ethers.provider)  // Create an account to sign txs
-		botOperator = new ethers.Wallet(config.PRIVATE_KEY, ethers.provider)  // Interact with dispatcher
+		botOperator = new ethers.Wallet(config.settings.network.privateKey, ethers.provider)  // Interact with dispatcher
 		bank = genNewAccount()  // Source of test eth
 		await impersonateAccount(signer.address)
 		
 		await reservesMng.init(ethers.provider, [])
 		txMng.init(ethers.provider, botOperator)
-		backrunner.init(ethers.provider)  // Set a provider
 	})
 
 	beforeEach(async () => {
@@ -65,7 +64,8 @@ describe('Virtual reserves', () => {
 			value: ethers.utils.parseEther('1000'),
 			to: signer.address, 
 		}).then(async txRequest => txRequest.wait())
-		// Restart requests pool with each test
+		// Restart backrunner for each request
+		backrunner.init(ethers.provider)  // Set a provider
 		backrunner.cleanRequestsPool()
 	})
 
@@ -81,8 +81,8 @@ describe('Virtual reserves', () => {
 			tipAmount: ethers.utils.parseUnits('0.1')
 		}
 		let archerswapRouter = new ethers.Contract(
-			config.ROUTERS.ARCHERSWAP,
-			ABIS['archerswapRouter'] 
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		nextNonce = nextNonce==0 ? 1 : nextNonce
@@ -142,8 +142,8 @@ describe('Virtual reserves', () => {
 			tipAmount: ethers.utils.parseUnits('0.1')
 		}
 		let archerswapRouter = new ethers.Contract(
-			config.ROUTERS.ARCHERSWAP,
-			ABIS['archerswapRouter'] 
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		nextNonce = nextNonce==0 ? 1 : nextNonce
@@ -213,8 +213,8 @@ describe('Virtual reserves', () => {
 			tipAmount: ethers.utils.parseUnits('0.1')
 		}
 		let archerswapRouter = new ethers.Contract(
-			config.ROUTERS.ARCHERSWAP,
-			ABIS['archerswapRouter'] 
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest = await archerswapRouter.populateTransaction[txCallArgs.method](
@@ -283,14 +283,14 @@ describe('Virtual reserves', () => {
 			tipAmount: ethers.utils.parseUnits('0.1')
 		}
 		// Prepare for trade - wrap eth; approve weth (execute before checking the nonce)
-		let WETH = new ethers.Contract(assets.WETH, config.ABIS['weth'], ethers.provider)
+		let WETH = new ethers.Contract(assets.WETH, config.abis['weth'], ethers.provider)
 		await WETH.connect(signer).deposit({value: txCallArgs.amountIn, gasPrice: ZERO})
 		expect(await WETH.balanceOf(signer.address)).to.equal(txCallArgs.amountIn)
-		await WETH.connect(signer).approve(config.ROUTERS.ARCHERSWAP, ethers.constants.MaxUint256)
-		expect(await WETH.allowance(signer.address, config.ROUTERS.ARCHERSWAP)).to.equal(ethers.constants.MaxUint256)
+		await WETH.connect(signer).approve(config.constants.routers.archerswap, ethers.constants.MaxUint256)
+		expect(await WETH.allowance(signer.address, config.constants.routers.archerswap)).to.equal(ethers.constants.MaxUint256)
 		let archerswapRouter = new ethers.Contract(
-			config.ROUTERS.ARCHERSWAP,
-			ABIS['archerswapRouter'] 
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest = await archerswapRouter.populateTransaction[txCallArgs.method](
@@ -348,14 +348,14 @@ describe('Virtual reserves', () => {
 			minEth: ZERO
 		}
 		// Prepare for trade - wrap eth; approve weth (execute before checking the nonce)
-		let WETH = new ethers.Contract(assets.WETH, config.ABIS['weth'], ethers.provider)
+		let WETH = new ethers.Contract(assets.WETH, config.abis['weth'], ethers.provider)
 		await expect(() => WETH.connect(signer).deposit({value: txCallArgs.amountIn, gasPrice: ZERO}))
   			.to.changeTokenBalance(WETH, signer, txCallArgs.amountIn)
-		await WETH.connect(signer).approve(config.ROUTERS.ARCHERSWAP, ethers.constants.MaxUint256)
-		expect(await WETH.allowance(signer.address, config.ROUTERS.ARCHERSWAP)).to.equal(ethers.constants.MaxUint256)
+		await WETH.connect(signer).approve(config.constants.routers.archerswap, ethers.constants.MaxUint256)
+		expect(await WETH.allowance(signer.address, config.constants.routers.archerswap)).to.equal(ethers.constants.MaxUint256)
 		let archerswapRouter = new ethers.Contract(
-			config.ROUTERS.ARCHERSWAP,
-			ABIS['archerswapRouter'] 
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest = await archerswapRouter.populateTransaction[txCallArgs.method](
@@ -430,14 +430,14 @@ describe('Virtual reserves', () => {
 			minEth: ZERO
 		}
 		// Prepare for trade - wrap eth; approve weth (execute before checking the nonce)
-		let WETH = new ethers.Contract(assets.WETH, config.ABIS['weth'], ethers.provider)
+		let WETH = new ethers.Contract(assets.WETH, config.abis['weth'], ethers.provider)
 		await expect(() => WETH.connect(signer).deposit({value: txCallArgs.amountIn, gasPrice: ZERO}))
   			.to.changeTokenBalance(WETH, signer, txCallArgs.amountIn)
-		await WETH.connect(signer).approve(config.ROUTERS.ARCHERSWAP, ethers.constants.MaxUint256)
-		expect(await WETH.allowance(signer.address, config.ROUTERS.ARCHERSWAP)).to.equal(ethers.constants.MaxUint256)
+		await WETH.connect(signer).approve(config.constants.routers.archerswap, ethers.constants.MaxUint256)
+		expect(await WETH.allowance(signer.address, config.constants.routers.archerswap)).to.equal(ethers.constants.MaxUint256)
 		let archerswapRouter = new ethers.Contract(
-			config.ROUTERS.ARCHERSWAP,
-			ABIS['archerswapRouter'] 
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest = await archerswapRouter.populateTransaction[txCallArgs.method](
@@ -509,8 +509,8 @@ describe('Virtual reserves', () => {
 			tipAmount: ethers.utils.parseUnits('0.1')
 		}
 		let archerswapRouter = new ethers.Contract(
-			config.ROUTERS.ARCHERSWAP,
-			ABIS['archerswapRouter'] 
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest = await archerswapRouter.populateTransaction[txCallArgs.method](
@@ -552,7 +552,7 @@ describe('Virtual reserves', () => {
 			},
 		}
 		arbbot._setReserves(dummyReserves)
-		arbbot._setBotBal(ethers.utils.parseUnits('100'))
+		arbbot.updateBotBal(ethers.utils.parseUnits('100'))
 		arbbot.updateGasPrice(ethers.utils.parseUnits('20', 'gwei'))
 		let pathsToCheck = [ 'I000311', 'I001605' ].map(
 			instrMng.getPathById
@@ -578,8 +578,8 @@ describe('Virtual reserves', () => {
 			tipAmount: ethers.utils.parseUnits('0.1')
 		}
 		let archerswapRouter = new ethers.Contract(
-			config.ROUTERS.ARCHERSWAP,
-			ABIS['archerswapRouter'] 
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest = await archerswapRouter.populateTransaction[txCallArgs.method](
@@ -624,8 +624,8 @@ describe('Virtual reserves', () => {
 		// Uniswap trade
 		amountIn = ethers.utils.parseUnits('1000')
 		let archerswapRouter = new ethers.Contract(
-			config.ROUTERS.ARCHERSWAP,
-			ABIS['archerswapRouter'] 
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
 		)
 		let tradeTxRequest1 = await archerswapRouter.populateTransaction['swapExactETHForTokensWithTipAmount'](
 			unilikeRouters.uniswap,
@@ -640,7 +640,7 @@ describe('Virtual reserves', () => {
 			{ value: amountIn.add(tipAmount) }
 		)
 		// Sushiswap trade
-		amountIn = ethers.utils.parseUnits('20')
+		amountIn = ethers.utils.parseUnits('2000')
 		let tradeTxRequest2 = await archerswapRouter.populateTransaction['swapExactETHForTokensWithTipAmount'](
 			unilikeRouters.sushiswap,
 			[

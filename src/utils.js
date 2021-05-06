@@ -1,27 +1,79 @@
-require('dotenv').config()
-const ethers = require('ethers')
-ARCHER_API_KEY = process.env.ARCHER_API_KEY
-const { ARCHER_URL, ARCHER_BATCHES_URL } = require('./config')
-const config = require('./config')
-const fs = require('fs');
+const EthereumTx = require('ethereumjs-tx').Transaction
 const csvWriter = require('csv-write-stream')
 const fetch = require('node-fetch')
+const ethers = require('ethers')
+require('dotenv').config()
+const fs = require('fs')
+
+const config = require('./config')
 
 /**
- * Returns local time as a BigNumber
+ * Estimate gas amount for an internal Uniswap-like trade with nSteps.
+ * @dev Actual gasPerStep varies.
+ * @param {BigNumber} nSteps 
+ * @returns {BigNumber} gas cost in wei
  */
-function getCurrentTime() {
-    return ethers.BigNumber.from(Math.floor(Date.now() / 1000).toString());
+ function estimateGasAmount(nSteps) {
+    let gasPerStep = ethers.BigNumber.from("140000")
+    let totalGas = gasPerStep.mul(nSteps)
+    return totalGas
 }
 
 /**
- * Returns the breakeven gas price for an opportunity.
- * @param {BigNumber} reward in terms of ETH
- * @param {BigNumber | String} gasEstimate 
+ * Return price of gas
+ * @param {String} speed Paramter specifying how competitive gas price should be
+ * @returns {BigNumber}
  */
-function getBreakEvenGasPrice(reward, gasEstimate) {
-    let breakEvenGasPrice = reward.div(gasEstimate);
-    return breakEvenGasPrice;
+ async function fetchGasPrice(speed) {
+    let speedOptions = [
+        'normal',
+        'rapid', 
+        'fast', 
+        'slow',
+    ]
+    if (!speedOptions.includes(speed)) {
+        throw new Error(`Speed option ${speed} unknown. \nPlease select from ${speedOptions.join(',')}.`)
+    }
+    const result = await fetch(config.constants.gasPriceEndpoint)
+    const jsonResult = await result.json()
+    const option = jsonResult.data[speed].toString()
+    let gasPrice = ethers.BigNumber.from(option)
+    // Sense check that API returned the gas price in the right format
+    if (gasPrice.lt(ethers.utils.parseUnits('1', 'gwei'))) {
+        throw new Error('Gas price lower than 1 gwei')
+    } else if (gasPrice.gt(ethers.utils.parseUnits('10000', 'gwei'))) {
+        throw new Error('Gas price greater than 10000 gwei')
+    } else {
+        return gasPrice
+    }
+}
+
+/**
+ * Return normalized number
+ * Convert number with any decimals to 18 units
+ * @param {ethers.BigNumber} num Amount
+ * @param {ethers.BigNumber} dec Token decimals
+ * @returns {ethers.BigNumber}
+ */
+ function normalizeUnits(num, dec) {
+    // Convert everything to 18 units
+    return ethers.utils.parseUnits(
+        ethers.utils.formatUnits(num, dec)
+    )
+}
+
+/**
+ * Return unnormalized number
+ * Convert number from 18 units to unique decimals
+ * @param {BigNumber} num Amount
+ * @param {Number} dec Token decimals
+ * @returns {BigNumber}
+ */
+ function unnormalizeUnits(num, dec) {
+    return ethers.utils.parseUnits(
+        ethers.utils.formatUnits(num), 
+        dec
+    )
 }
 
 /**
@@ -41,84 +93,14 @@ function convertTxDataToByteCode(tx) {
     ]).split('0x')[1]
 }
 
-async function handleArcherResponse(response) {
-    console.log("handleArcherResponse::status", response.status);
-    let json = await response.json();
-    // console.log("handleArcherResponse", json)
-    if (response.status == 200) {
-        console.log("handleArcherResponse::ok", json);
-        // logToCsv(json, ARCHER_PASSES_PATH)
-    }
-    else if (response.status == 406) {
-        // logToCsv(json, ARCHER_FAILS_PATH)
-        if (json.reason == "opportunity too late") {
-            return;
-        }
-        else if (json.reason == "opportunity too early") {
-            // TODO - wait and resubmit
-        }
-    }
-    else {
-        console.log("handleArcherResponse::err", json);
-    }
-}
-
-
-async function broadcastToArcherWithOpts(
-    botId, query, trade, targetBlock, gasLimit, 
-    estimatedProfitBeforeGas, 
-    queryBreakEven = ethers.BigNumber.from("0"),
-    inputAmount = ethers.BigNumber.from("0"),
-    inputAsset = "ETH",
-    queryInsertLocations = [],
-    tradeInsertLocations = [],
-    blockDeadline = null, 
-    deadline = null
-) {
-    // console.log(
-    //     "broadcastToArcher::targetBlock", targetBlock, 
-    //     gasLimit.toString(), 
-    //     ethers.utils.formatUnits(estimatedProfitBeforeGas)
-    // );
-
-    const bodyObject = {
-      bot_id: botId, // ID of bot
-      target_block: targetBlock.toString(), // Target block where you'd like the trade to take place
-      trade, // bytecode for trade
-      estimated_profit_before_gas: estimatedProfitBeforeGas.toString(), // expected profit in wei before accounting for gas
-      gas_estimate: gasLimit.toString(), // Expected gas usage of trade
-    //   query, // OPTIONAL: query bytecode to run before trade
-      query_breakeven: queryBreakEven.toString(), // OPTIONAL: query return value minimum to continue with trade
-      input_amount: inputAmount.toString(), // OPTIONAL: value to withdraw from dispatcher liquidity
-      input_asset: inputAsset, // OPTIONAL: asset to withdraw from dispatcher liquidity
-    //   query_insert_locations: queryInsertLocations, // OPTIONAL: locations in query to insert values
-    //   trade_insert_locations: tradeInsertLocations, // OPTIONAL: location in trade to insert values
-      deadline_block_number: blockDeadline.toString()
-    };
-    if (deadline) {
-        bodyObject['min_timestamp'] = deadline.toString(),
-        bodyObject['max_timestamp'] = deadline.add("180").toString()
-    }
-
-    const body = JSON.stringify(bodyObject);
-    let options = {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json, text/plain, */*',
-          'Content-Type': 'application/json',
-          'x-api-key': config.SECRETS.ARCHER_API_KEY
-        },
-        body,
-    }
-    // fetch(ARCHER_URL, options)
-    //     .then(response => handleArcherResponse(response))
-    //     .catch(error => console.log("broadcastToArcher::error", error));
-    return fetch(config.ARCHER_URL, options)
-        .then(response => response.json())
-        .catch(error => console.log("broadcastToArcher::error", error))
-}
-
-async function submitBatchesToArcher({ethCall, senderAddress, signature}) {
+/**
+ * Send bundle to archer network and return response
+ * @param {Object} ethCall `eth_callBundle` or `eth_sendBundle` method with args
+ * @param {String} senderAddress Address submitting the request
+ * @param {String} signature `ethCall` signed with `senderAddress`
+ * @returns {Object}
+ */
+async function submitBundleToArcher({ ethCall, senderAddress, signature }) {
     let request  = {
         method: 'POST',
         body:    JSON.stringify(ethCall),
@@ -128,88 +110,47 @@ async function submitBatchesToArcher({ethCall, senderAddress, signature}) {
             'X-Flashbots-Signature': senderAddress+':'+signature
         }
     }
-    return fetch(config.ARCHER_BATCHES_URL, request)
-        // .then(response => response.json())
-        .catch(error => console.log("broadcastToArcher::error", error))
-}
-
-async function submitSimulationRequest(request) {
-    return fetch(config.ARCHER_BATCHES_URL, request)
-    .catch(error => console.log("broadcastToArcher::error", error))}
-
-function logToCsv(data, path) {
-    if (!Array.isArray(data)) {
-        data = [data]
-    }
-    let writer = csvWriter()
-    let headers = {sendHeaders: false}
-    if (!fs.existsSync(path))
-        headers = {headers: Object.keys(data[0])}
-    writer = csvWriter(headers);
-    writer.pipe(fs.createWriteStream(path, {flags: 'a'}));
-    data.forEach(e => writer.write(e))
-    writer.end()
-}
-
-async function fetchGasPrice(speed) {
-    let speedOptions = [
-        'fast', 
-        'rapid', 
-        'normal',
-        'slow' 
-    ]
-    if (!speedOptions.includes(speed)) {
-        throw new Error(`Speed option ${speed} unknown. \nPlease select from ${speedOptions.join(',')}.`)
-    }
-    const url = "https://www.gasnow.org/api/v3/gas/price";
-    try {
-      const result = await fetch(url)
-      const jsonResult = await result.json()
-      const option = jsonResult.data[speed].toString()
-      let gasPrice = ethers.BigNumber.from(option)
-      if (gasPrice.gt(config.GAS_PRICE_LIMIT)) {
-          throw new Error('Gas price limit reached!')
-      }
-      return gasPrice
-    }
-    catch (error) {
-      if (error.message.startsWith("invalid json response body")) {
-      }
-      else {
-        console.log("fetchGasPrice::catch", error.message)
-      }
-    }
-}
-
-function sleep(ms) {
-    return new Promise((resolve) => {
-      setTimeout(resolve, ms);
-    });
-  }  
-
-  async function jsonRPCRequest(url, req) {
-    return fetch(
-        url, 
-        {
-            method: 'post',
-            body:    JSON.stringify(req),
-            headers: { 'Content-Type': 'application/json' },
-        }
-    ).then(r => r.json())
+    return fetch(config.constants.archerBundleEndpoint, request)
+        .then(response => response.json())
 }
 
 /**
- * Estimate gas cost for an internal Uniswap trade with nSteps.
- * @dev Gas estimate for wrapping 32k
- * @dev Actual gasPerStep varies. Estimated 62k
- * @dev Avalanche has static gas price (may change in hardfork). Set to 470gwei
- * @param {BigNumber} nSteps 
- * @returns {BigNumber} gas cost in wei
+ * Save rows in CSV file
+ * If file doesn't exist method creates it with columns
+ * @param {Array} rows Rows to save
+ * @param {String} saveTo Path to CSV file
  */
- function estimateGasAmount(nSteps) {
-    let gasPerStep = ethers.BigNumber.from("140000")
-    let totalGas = gasPerStep.mul(nSteps)
-    return totalGas
+ function logRowsToCsv(rows, saveTo) {
+    let writer = csvWriter()
+    let headers = {sendHeaders: false}
+    if (!fs.existsSync(saveTo))
+        headers = {headers: Object.keys(rows[0])}
+    writer = csvWriter(headers);
+    writer.pipe(fs.createWriteStream(saveTo, {flags: 'a'}));
+    rows.forEach(e => writer.write(e))
+    writer.end()
+}
+
+/**
+ * Return account address that signed the signed transaction
+ * @param {String} rawTx 
+ * @returns {String}
+ */
+function getSignerFromRawTx(rawTx) {
+    return ethers.utils.getAddress(
+        '0x' + new EthereumTx(rawTx).getSenderAddress().toString('hex')
+    )
+}
+
+/**
+ * Halt execution for some amount of time
+ * @param {Integer} ms Amount of time to halt the execution (miliseconds)
+ * @returns 
+ */
+function sleep(ms) {
+    return new Promise(resolve => {
+        setTimeout(resolve, ms)
+    })
 }
 
 /**
@@ -221,15 +162,28 @@ function isHex(string) {
     return /^0x[0-9A-Fa-f]+$/.test(string)
 }
 
+/**
+ * Return inverted object (swap keys for their corresponding values)
+ * Only works with injective mappings
+ * @param {Object} mapping Dictionary to be inverted 
+ * @returns {Object} Inverted original dictionary
+ */
+function invertMap(mapping) {
+    return Object.fromEntries(Object.entries(mapping).map(entry => {
+        return [ entry[1], entry[0] ]
+    }))
+}
+
 module.exports = { 
-    submitBatchesToArcher, 
-    estimateGasAmount,
-    fetchGasPrice, 
-    broadcastToArcherWithOpts, 
     convertTxDataToByteCode, 
-    submitSimulationRequest,
-    logToCsv, 
-    jsonRPCRequest,
+    submitBundleToArcher, 
+    getSignerFromRawTx,
+    estimateGasAmount,
+    unnormalizeUnits,
+    normalizeUnits,
+    fetchGasPrice, 
+    logRowsToCsv, 
+    invertMap,
     sleep, 
     isHex
 }

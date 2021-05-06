@@ -58,7 +58,7 @@ describe('Handle new backrun request', () => {
 	before(async () => {
 		genNewAccount = await makeAccountGen()
 		signer = ethers.Wallet.createRandom().connect(ethers.provider)
-		botOperator = new ethers.Wallet(config.PRIVATE_KEY, ethers.provider)
+		botOperator = new ethers.Wallet(config.settings.network.privateKey, ethers.provider)
 	})
 
 	beforeEach(() => {
@@ -79,8 +79,8 @@ describe('Handle new backrun request', () => {
 			tipAmount: ethers.utils.parseUnits('0.1')
 		}
 		let archerswapRouter = new ethers.Contract(
-			config.ROUTERS.ARCHERSWAP,
-			ABIS['archerswapRouter'] 
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		nextNonce = nextNonce==0 ? 1 : nextNonce
@@ -131,8 +131,8 @@ describe('Handle new backrun request', () => {
 			tipPct: (0.5*1000000).toString()
 		}
 		let archerswapRouter = new ethers.Contract(
-			config.ROUTERS.ARCHERSWAP,
-			ABIS['archerswapRouter'] 
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		nextNonce = nextNonce==0 ? 1 : nextNonce
@@ -182,8 +182,8 @@ describe('Handle new backrun request', () => {
 			deadline: parseInt(Date.now()/1e3)+300
 		}
 		let archerswapRouter = new ethers.Contract(
-			config.ROUTERS.ARCHERSWAP,
-			ABIS['archerswapRouter']
+			config.constants.routers.archerswap,
+			abis['archerswapRouter']
 		)
 		let nextNonce = await signer.getTransactionCount()
 		nextNonce = nextNonce==0 ? 1 : nextNonce
@@ -232,8 +232,8 @@ describe('Handle new backrun request', () => {
 	it('ArcherSwap signed tx with unsupported method should not be decrypted', async () => {
 		// Create transaction for uniswap trade and sign it
 		let archerswapRouter = new ethers.Contract(
-			config.ROUTERS.ARCHERSWAP,
-			ABIS['archerswapRouter']
+			config.constants.routers.archerswap,
+			abis['archerswapRouter']
 		)
 		let nextNonce = await signer.getTransactionCount()
 		nextNonce = nextNonce==0 ? 1 : nextNonce
@@ -271,8 +271,8 @@ describe('Handle new backrun request', () => {
 			tipAmount: ethers.utils.parseUnits('0.1')
 		}
 		let archerswapRouter = new ethers.Contract(
-			config.ROUTERS.ARCHERSWAP,
-			ABIS['archerswapRouter'] 
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
 		)
 		let nextNonce = await signer.getTransactionCount()
 		nextNonce = nextNonce==0 ? 1 : nextNonce

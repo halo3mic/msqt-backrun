@@ -51,7 +51,7 @@ describe('Execution', () => {
 	before(async () => {
 		genNewAccount = await makeAccountGen()
 		signer = ethers.Wallet.createRandom().connect(ethers.provider)  // Create an account to sign txs
-		botOperator = new ethers.Wallet(config.PRIVATE_KEY, ethers.provider)  // Interact with dispatcher
+		botOperator = new ethers.Wallet(config.settings.network.privateKey, ethers.provider)  // Interact with dispatcher
 		bank = genNewAccount()  // Source of test eth
 		await impersonateAccount(signer.address)
 		
@@ -75,8 +75,8 @@ describe('Execution', () => {
 		let amountIn = ethers.utils.parseUnits('100')
 		let tipAmount = ethers.utils.parseUnits('0.1')
 		let archerswapRouter = new ethers.Contract(
-			config.ROUTERS.ARCHERSWAP,
-			ABIS['archerswapRouter'] 
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
 		)
 		let tradeTxRequest1 = await archerswapRouter.populateTransaction['swapExactETHForTokensWithTipAmount'](
 			unilikeRouters.uniswap,
@@ -108,10 +108,8 @@ describe('Execution', () => {
 		let opps = backrunRequests.map(arbbot.getOppsForRequest).flat()
 		expect(opps.length).to.above(0)
 		opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
-		let blockNumber = await ethers.provider.getBlockNumber()
-		let dispatcherTx = await txMng.buildDispatcherTx(
-			opps[0], 
-			blockNumber,
+		let dispatcherTx = await txMng.formDispatcherTx(
+			opps[0],
 			await botOperator.getTransactionCount()
 		)
 		// Execute trade tx
@@ -122,14 +120,14 @@ describe('Execution', () => {
 		// Execute arb tx
 		console.log('Executing arb tx')
 		let latestBlock = await ethers.provider.getBlock('latest')  // Miner stays the same!
-		let dispatcherBalBefore = await ethers.provider.getBalance(config.DISPATCHER)
-		let tipjarBalBefore = await ethers.provider.getBalance(config.TIPJAR)
+		let dispatcherBalBefore = await ethers.provider.getBalance(config.constants.dispatcher)
+		let tipjarBalBefore = await ethers.provider.getBalance(config.constants.tipJar)
 		let minerBalBefore = await ethers.provider.getBalance(latestBlock.miner)
 		await botOperator.sendTransaction(dispatcherTx).then(
 			async response => response.wait()
 		)
-		let dispatcherBalAfter = await ethers.provider.getBalance(config.DISPATCHER)
-		let tipjarBalAfter = await ethers.provider.getBalance(config.TIPJAR)
+		let dispatcherBalAfter = await ethers.provider.getBalance(config.constants.dispatcher)
+		let tipjarBalAfter = await ethers.provider.getBalance(config.constants.tipJar)
 		let minerBalAfter = await ethers.provider.getBalance(latestBlock.miner)
 		let dispatcherBalNet = dispatcherBalAfter.sub(dispatcherBalBefore)
 		let tipjarBalNet = tipjarBalAfter.sub(tipjarBalBefore)
@@ -153,11 +151,11 @@ describe('Execution', () => {
 		// // Prepare for the trade by getting some tokens
 		// await topUpAccount(signer.address, txCallArgs.amountIn)
 		// expect(await ethers.provider.getBalance(signer.address)).to.equal(txCallArgs.amountIn)
-		// let WETH = new ethers.Contract(assets.WETH, config.ABIS['weth'], ethers.provider)
+		// let WETH = new ethers.Contract(assets.WETH, config.abis['weth'], ethers.provider)
 		// await WETH.connect(signer).deposit({ value: txCallArgs.amountIn, gasPrice: ZERO }) // Wrap eth
 		// expect(await WETH.balanceOf(signer.address)).to.equal(txCallArgs.amountIn)
-		// await WETH.connect(signer).approve(config.ROUTERS.ARCHERSWAP, ethers.constants.MaxUint256, {gasPrice: ZERO})  // Approve weth for ArcherSwap
-		// expect(await WETH.allowance(signer.address, config.ROUTERS.ARCHERSWAP)).to.equal(ethers.constants.MaxUint256)
+		// await WETH.connect(signer).approve(config.constants.routers.archerswap, ethers.constants.MaxUint256, {gasPrice: ZERO})  // Approve weth for ArcherSwap
+		// expect(await WETH.allowance(signer.address, config.constants.routers.archerswap)).to.equal(ethers.constants.MaxUint256)
 	 */
 
 })
