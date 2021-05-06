@@ -107,6 +107,7 @@ async function startRequestUpdates() {
             res.json(response)
             let returnTimestamp = Date.now()
             utils.logRequest(
+                'submitRequest',
                 request, 
                 response,
                 recvBlockHeight, 
@@ -143,6 +144,7 @@ async function startRequestUpdates() {
             res.json(response)
             let returnTimestamp = Date.now()
             utils.logRequest(
+                'backrunRequest',
                 request, 
                 response,
                 recvBlockHeight, 

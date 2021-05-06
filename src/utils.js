@@ -117,6 +117,7 @@ async function submitBundleToArcher({ ethCall, senderAddress, signature }) {
 
 /**
  * Log request to backrun tx-request and bot's response 
+ * @param {String} method Method through which request was sent
  * @param {String} request Raw transaction to be backrun
  * @param {Object} response Response sent to the sender
  * @param {Integer} recvBlockHeight Block number when the request was recieved
@@ -124,6 +125,7 @@ async function submitBundleToArcher({ ethCall, senderAddress, signature }) {
  * @param {Integer} returnTimestamp Time when the response was sent [ms]
  */
 function logRequest(
+        method,
         rawTx, 
         response, 
         recvBlockHeight, 
@@ -135,6 +137,7 @@ function logRequest(
             blockNumber: recvBlockHeight,
             timestampRecv: recvTimestamp, 
             timestampResp: respTimestamp, 
+            method,
             rawTx, 
             response: JSON.stringify(response)
         }], config.constants.paths.requests)

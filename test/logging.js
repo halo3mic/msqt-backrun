@@ -134,6 +134,7 @@ describe('Logging', () => {
             let [ savedRequest ] = await csv().fromFile(
                 config.constants.paths.requests
             )
+            expect(savedRequest.method).to.equal('submitRequest')
             expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
             expect(savedRequest.response).to.equal(JSON.stringify(response))
             expect(typeof savedRequest.id == 'string').to.be.true
@@ -143,17 +144,27 @@ describe('Logging', () => {
 		})
 	
 		it('Request to /submitRequest in invalid format shall be rejected', async () => {
+            let signedTradeTxRequest = 'this is not a hex string'
 			let response = await fetch(
 				'http://localhost:8888/submitRequest', 
 				{
 					method: 'post',
-					body:    'this is not a hex string',
+					body:    signedTradeTxRequest,
 					headers: { 'Content-Type': 'application/text' },
 				}
 			)
 			response = await response.json()
-			expect(response.status).to.equal(0)
-			expect(response.msg).to.equal('RequestError: Not in hex format')
+            // Confirm the request and its response were saved
+            let [ savedRequest ] = await csv().fromFile(
+                config.constants.paths.requests
+            )
+            expect(savedRequest.method).to.equal('submitRequest')
+            expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
+            expect(savedRequest.response).to.equal(JSON.stringify(response))
+            expect(typeof savedRequest.id == 'string').to.be.true
+            expect(isNumeric(savedRequest.blockNumber)).to.be.true
+            expect(isNumeric(savedRequest.timestampRecv)).to.be.true
+            expect(isNumeric(savedRequest.timestampResp)).to.be.true
 		})
 	
 		it('Signed transaction request to /backrunRequest should return bundle to the sender if opps are found for request', async () => {
@@ -201,6 +212,7 @@ describe('Logging', () => {
             let [ savedRequest ] = await csv().fromFile(
                 config.constants.paths.requests
             )
+            expect(savedRequest.method).to.equal('backrunRequest')
             expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
             expect(savedRequest.response).to.equal(JSON.stringify(response))
             expect(typeof savedRequest.id == 'string').to.be.true
@@ -256,6 +268,7 @@ describe('Logging', () => {
             let [ savedRequest ] = await csv().fromFile(
                 config.constants.paths.requests
             )
+            expect(savedRequest.method).to.equal('backrunRequest')
             expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
             expect(savedRequest.response).to.equal(JSON.stringify(response))
             expect(typeof savedRequest.id == 'string').to.be.true
@@ -279,6 +292,7 @@ describe('Logging', () => {
             let [ savedRequest ] = await csv().fromFile(
                 config.constants.paths.requests
             )
+            expect(savedRequest.method).to.equal('backrunRequest')
             expect(savedRequest.rawTx).to.equal(signedTradeTxRequest)
             expect(savedRequest.response).to.equal(JSON.stringify(response))
             expect(typeof savedRequest.id == 'string').to.be.true
