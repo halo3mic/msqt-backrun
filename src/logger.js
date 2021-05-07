@@ -4,21 +4,25 @@ const config = require('./config')
 const md5 = require('md5')
 const fs = require('fs')
 
-class Logger {
+class Table {
 
-    static rowsTemp = [] // Hold rows of requests in memory until they are written
-    static getRows = () => this.rowsTemp
     /**
      * Write temp rows to disk and clean staging area
      */
     static async flush() {
-        await logRowsToCsv(this.rowsTemp, config.constants.paths.requests)
-        this.rowsTemp.length = 0
+        let rows = this.getRows()
+        if (rows.length) {
+            await logRowsToCsv(rows, this.getSavePath())
+            rows.length = 0  // Clear memory
+        }
     }
 }
 
-class Request extends Logger {
+class Request extends Table {
 
+    static rowsTemp = [] // Hold rows of requests in memory until they are written
+    static getRows = () => this.rowsTemp
+    static getSavePath = () => config.constants.paths.requests
     /**
      * Add row to staging area - ready to be written to csv
      * @param {String} method Method through which request was sent
@@ -30,7 +34,7 @@ class Request extends Logger {
      */
     static addRow(
         method,
-        rawTx, 
+        request, 
         response, 
         recvBlockHeight, 
         recvTimestamp, 
@@ -42,22 +46,52 @@ class Request extends Logger {
             timestampRecv: recvTimestamp, 
             timestampResp: respTimestamp, 
             method,
-            rawTx, 
+            request, 
             response: JSON.stringify(response)
+        })
+    }
+}
+
+class Opportunity extends Table {
+
+    static rowsTemp = [] // Hold rows of requests in memory until they are written
+    static getRows = () => this.rowsTemp
+    static getSavePath = () => config.constants.paths.opps
+    static addRow(opp, blockNumber) {
+        this.rowsTemp.push({
+            id: idFromVals(arguments),
+            blockNumber, 
+            path: opp.path.id,
+            grossProfit: opp.grossProfit, 
+            netProfit: opp.netProfit, 
+            gasAmount: opp.gasAmount, 
+            inputAmount: opp.inputAmount, 
+            backrunTxs: opp.backrunTxs.join(',')
         })
     }
 }
 
 async function flush() {
     await Request.flush()
+    await Opportunity.flush()
 }
 
 function logRequest(...data) {
     Request.addRow(...data)
 }
 
+function logOpps(opps, blockNumber) {
+    for (let i=0; i<opps.length; i++) {
+        Opportunity.addRow(opps[i], blockNumber)
+    }
+}
+
 function getRequests() {
     return Request.getRows()
+}
+
+function getOpps() {
+    return Opportunity.getRows()
 }
 
 /**
@@ -90,6 +124,8 @@ async function logRowsToCsv(rows, saveTo) {
 
 module.exports = {
     getRequests,
+    getOpps,
     logRequest, 
+    logOpps,
     flush
 }

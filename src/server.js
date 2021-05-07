@@ -82,6 +82,7 @@ async function startRequestUpdates() {
             next()
         })
     })
+    // TODO: Make a helper function for the post requests
     app.post("/submitRequest", async (req, res) => {
         let request = req.body
         let recvBlockHeight = BLOCK_HEIGHT  // Block height at which request was recieved
@@ -103,7 +104,7 @@ async function startRequestUpdates() {
         } catch (e) {
             response = {
                 status: 0, 
-                msg: `InternalError:${e.msg}`
+                msg: `InternalError: ${e}`
             }
         } finally {
             res.json(response)
@@ -119,25 +120,39 @@ async function startRequestUpdates() {
         }
     })
     app.post("/cancelRequest", async (req, res) => {
-        let requestHash = req.body
+        let request = req.body
+        let recvBlockHeight = BLOCK_HEIGHT  // Block height at which request was recieved
+        let recvTimestamp = Date.now()  // Time when request was recieved
+        let response
         try {
-            if (utils.isHex(requestHash)) {
-                arbbot.cancelRequest(requestHash)
-                res.json({
+            if (utils.isHex(request)) {
+                arbbot.cancelRequest(request)
+                response = {
                     status: 1, 
                     msg: 'OK'
-                })
+                }
             } else {
-                res.json({
+                response = {
                     status: 0, 
                     msg: 'RequestError: Not in hex format'
-                })
+                }
             }
         } catch (e) {
-            res.json({
+            response = {
                 status: 0, 
-                msg: `InternalError:${e.msg}`
-            })
+                msg: `InternalError: ${e}`
+            }
+        } finally {
+            res.json(response)
+            let returnTimestamp = Date.now()
+            logger.logRequest(
+                'cancelRequest',
+                request, 
+                response,
+                recvBlockHeight, 
+                recvTimestamp, 
+                returnTimestamp
+            )
         }
     })
     app.post("/backrunRequest", async (req, res) => {
@@ -147,7 +162,7 @@ async function startRequestUpdates() {
         let response
         try {
             if (utils.isHex(request)) {
-                let result = await arbbot.backrunRequest(request, recvBlockHeight)
+                let result = await arbbot.backrunRawRequest(request, recvBlockHeight)
                 response = {
                     status: 1,
                     msg: 'OK',
@@ -162,7 +177,7 @@ async function startRequestUpdates() {
         } catch (e) {
             response = {
                 status: 0, 
-                msg: `InternalError:${e.msg}`
+                msg: `InternalError: ${e}`
             }
         } finally {
             res.json(response)

@@ -6,10 +6,10 @@ const reservesManager = require('./reservesManager')
 const instrMng = require('./instrManager')
 const backrunner = require('./backrunner')
 const txManager = require('./txManager')
+const logger = require('./logger')
+const math = require('./unimath')
 const config = require('./config')
 const utils = require('./utils')
-const math = require('./unimath')
-const { logger } = require('./server')
 
 // Global vars
 let GAS_PRICE
@@ -138,21 +138,19 @@ function getOppsForRequest(txRequest) {
  * @param {Integer} blockNumber 
  */
 async function handleBlockUpdate(blockNumber) {
+    await backrunPendingRequests()
+    await updateBotBal()  // Update dispatcher balance
+    await logger.flush()  // Write from memory to storage
+}
+
+async function backrunPendingRequests() {
     // Get only valid requests
-    // TODO: Should this be done in the bot? Call `getBackrunRequests` instead?
     let backrunRequests = await backrunner.getValidBackrunRequests()
     // Get all opportunities for all requets and put them in a single array
     let opps = backrunRequests.map(request => getOppsForRequest(request)).flat()
     if (opps.length>0) {
-        opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
-        // Execute only the best opportunity found 
-        // TODO: In the future handle more opportunities at once
-        await handleOpp(blockNumber, [opps[0]])
-        // Log to csv
-        utils.logOpps(opps, blockNumber)
+        await handleOpps(blockNumber, opps)
     }
-    await updateBotBal()
-    await logger.flush()
 }
 
 /**
@@ -160,16 +158,16 @@ async function handleBlockUpdate(blockNumber) {
  * @param {Integer} blockNumber 
  * @param {Array} opps 
  */
-async function handleOpp(blockNumber, opps) {
-    try {
-        let response = await txManager.executeBundles(opps, blockNumber)
-        opps.forEach(printOpportunityInfo)
-        
-        console.log(response)  // Response from Archer
-    }
-    catch (error) {
-        console.log(`${blockNumber} | ${Date.now()} | Failed execute opportunity ${error.message}`)
-    }
+async function handleOpps(blockNumber, opps) {
+    opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
+    // Execute only the best opportunity found 
+    // TODO: In the future handle more opportunities at once
+    opps = [ opps[0] ]
+    let response = await txManager.executeBundles(opps, blockNumber)
+    // Log to csv
+    logger.logOpps(opps, blockNumber)
+    console.log(response)  // Response from Archer
+    return true
 }
 
 /**
@@ -178,12 +176,11 @@ async function handleOpp(blockNumber, opps) {
  * @param {Integer} blockNumber 
  * @returns {Object}
  */
-async function backrunRequest(rawTxRequest, blockNumber) {
+async function backrunRawRequest(rawTxRequest, blockNumber) {
     let request = backrunner.parseBackrunRequest(rawTxRequest)
     let opps = getOppsForRequest(request)
     if (opps.length>0) {
         opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
-        console.log(opps[0])
         // Get bundles only for the best opportunity found 
         // TODO: In the future handle more opportunities at once
         let bundle = await txManager.oppsToBundle([ opps[0] ], blockNumber)
@@ -191,8 +188,8 @@ async function backrunRequest(rawTxRequest, blockNumber) {
             bundle, 
             blockNumber+1
         )
-        console.log(opps[0])
-        utils.logOpps(opps, blockNumber)  // Doesnt wait for it
+        console.log(`Logging ${opps.length} opps`)
+        logger.logOpps(opps, blockNumber)  // Doesnt wait for it
         return archerApiParams
     } else {
         console.log('No opportunities found')
@@ -308,9 +305,10 @@ function getPaths() {
 module.exports = {
     handleNewBackrunRequest,
     handleBlockUpdate,
-    backrunRequest,
+    backrunRawRequest,
     updateReserves,
     cancelRequest,
+    handleOpps,
     getPaths,
     init, 
     // Test visibility:
