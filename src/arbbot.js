@@ -148,6 +148,8 @@ async function handleBlockUpdate(blockNumber) {
         // Execute only the best opportunity found 
         // TODO: In the future handle more opportunities at once
         await handleOpp(blockNumber, [opps[0]])
+        // Log to csv
+        utils.logOpps(opps, blockNumber)
     }
     await updateBotBal()
     await logger.flush()
@@ -162,6 +164,7 @@ async function handleOpp(blockNumber, opps) {
     try {
         let response = await txManager.executeBundles(opps, blockNumber)
         opps.forEach(printOpportunityInfo)
+        
         console.log(response)  // Response from Archer
     }
     catch (error) {
@@ -176,12 +179,11 @@ async function handleOpp(blockNumber, opps) {
  * @returns {Object}
  */
 async function backrunRequest(rawTxRequest, blockNumber) {
-    // TODO: Need to check request validity? backrunner.isValidRequest(request)
-    let request = backrunner.decryptRawTx(rawTxRequest)
-    request.callArgs = backrunner.enrichCallArgs(request.callArgs)
+    let request = backrunner.parseBackrunRequest(rawTxRequest)
     let opps = getOppsForRequest(request)
     if (opps.length>0) {
         opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
+        console.log(opps[0])
         // Get bundles only for the best opportunity found 
         // TODO: In the future handle more opportunities at once
         let bundle = await txManager.oppsToBundle([ opps[0] ], blockNumber)
@@ -189,6 +191,8 @@ async function backrunRequest(rawTxRequest, blockNumber) {
             bundle, 
             blockNumber+1
         )
+        console.log(opps[0])
+        utils.logOpps(opps, blockNumber)  // Doesnt wait for it
         return archerApiParams
     } else {
         console.log('No opportunities found')
@@ -238,6 +242,10 @@ function getPathsWithGasEstimate(paths) {
 
 function handleNewBackrunRequest(...args) {
     return backrunner.handleNewBackrunRequest(...args)
+}
+
+function cancelRequest(hash) {
+    return backrunner.removeRequestFromPool(hash)
 }
 
 function getBackrunRequests() {
@@ -302,6 +310,7 @@ module.exports = {
     handleBlockUpdate,
     backrunRequest,
     updateReserves,
+    cancelRequest,
     getPaths,
     init, 
     // Test visibility:
@@ -310,8 +319,8 @@ module.exports = {
     getOppsForRequest,
     getReservePath, 
     updateGasPrice,
+    updateBotBal,
     _setReserves,
     getReserves,
-    updateBotBal,
     arbForPath, 
 }

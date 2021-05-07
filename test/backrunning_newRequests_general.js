@@ -61,6 +61,7 @@ describe('Handle new backrun request', () => {
 		genNewAccount = await makeAccountGen()
 		signer = ethers.Wallet.createRandom().connect(ethers.provider)
 		botOperator = new ethers.Wallet(config.settings.network.privateKey, ethers.provider)
+		backrunner.init(ethers.provider)
 	})
 
 	beforeEach(() => {
@@ -137,6 +138,10 @@ describe('Handle new backrun request', () => {
 			server.startRequestUpdates()
 		})
 
+		after(() => {
+			server.stopRequestUpdates()
+		})
+
 		it('Signed transaction request to /submitRequest should be added to the local mempool', async () => {
 			// Make request and sign it
 			let txCallArgs = {
@@ -181,6 +186,67 @@ describe('Handle new backrun request', () => {
 			let backrunRequests = arbbot.getBackrunRequests()
 			expect(backrunRequests.length).to.equal(1)
 			expect(backrunRequests[0].signedRequest).to.equal(signedTradeTxRequest)
+		})
+
+		it('Tx hash of the request to /cancelRequest should remove the request from the local mempool', async () => {
+			// Make request and sign it
+			let txCallArgs = {
+				amountIn: ethers.utils.parseEther('100'),
+				amountOut: ZERO,
+				method: 'swapExactETHForTokens',
+				tknPath: [ assets.WETH, assets.DAI ],
+				router: unilikeRouters.uniswap, 
+				deadline: parseInt(Date.now()/1e3)+300
+			}
+			let UniswapRouter = new ethers.Contract(
+				txCallArgs.router,
+				abis['uniswapRouter'] 
+			)
+			let nextNonce = await signer.getTransactionCount()
+			nextNonce = nextNonce==0 ? 1 : nextNonce
+			let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
+				txCallArgs.amountOut, 
+				txCallArgs.tknPath, 
+				signer.address,
+				txCallArgs.deadline, 
+				{ 
+					gasPrice: ZERO, 
+					value: txCallArgs.amountIn, 
+					nonce: nextNonce, 
+				}
+			)
+			let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+			// Submit signed tx request to the bot
+			let response = await fetch(
+				'http://localhost:8888/submitRequest', 
+				{
+					method: 'post',
+					body:    signedTradeTxRequest,
+					headers: { 'Content-Type': 'application/text' },
+				}
+			)
+			response = await response.json()
+			expect(response.status).to.equal(1)
+			expect(response.msg).to.equal('OK')
+			// Confirm the tx request was accepted
+			let backrunRequests = arbbot.getBackrunRequests()
+			expect(backrunRequests.length).to.equal(1)
+			expect(backrunRequests[0].signedRequest).to.equal(signedTradeTxRequest)
+			// Cancel the request 
+			let response2 = await fetch(
+				'http://localhost:8888/cancelRequest', 
+				{
+					method: 'post',
+					body:    backrunRequests[0].txHash,
+					headers: { 'Content-Type': 'application/text' },
+				}
+			)
+			response2 = await response2.json()
+			expect(response2.status).to.equal(1)
+			expect(response2.msg).to.equal('OK')
+			// Check that request is not in the local mempool anymore
+			let backrunRequests2 = arbbot.getBackrunRequests()
+			expect(backrunRequests2.length).to.equal(0)
 		})
 	
 		it('Request to /submitRequest in invalid format shall be rejected', async () => {

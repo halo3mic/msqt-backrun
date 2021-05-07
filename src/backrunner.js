@@ -98,7 +98,7 @@ function decryptRawTx(rawTx) {
             return { txRequest, callArgs, txHash, sender }
         }
     }
-    return { txRequest, txHash, sender }
+    return { txRequest, txHash, sender, rawTx }
 }
 
 /**
@@ -153,12 +153,7 @@ function enrichCallArgs(callArgs) {
     }
 }
 
-/**
- * Add decrypted and enriched signed transction to the local mempool
- * @param {String} rawTx 
- */
-function handleNewBackrunRequest(rawTx) {
-    // TODO: Set max size for requests pool
+function parseBackrunRequest(rawTx) {
     let decrypted = decryptRawTx(rawTx)
     if (!decrypted) {
         // Exit if transaction is not unilike
@@ -175,17 +170,21 @@ function handleNewBackrunRequest(rawTx) {
         // Exit if unsupported pool
         return
     }
-    if (BACKRUN_REQUESTS.length>config.settings.arb.maxRequestPoolSize) {
-        // TODO: First check if requests are still valid and only then remove them
-        removeRequestsFromPool(1)  // Remove one request
-    }
-    BACKRUN_REQUESTS.push({
+    return {
         callArgs: enrichedArgs, 
         signedRequest: rawTx,
         txRequest,
         sender,
         txHash, 
-    })
+    }
+}
+
+/**
+ * Add decrypted and enriched signed transction to the local mempool
+ * @param {String} rawTx 
+ */
+function handleNewBackrunRequest(rawTx) {
+    BACKRUN_REQUESTS.push(parseBackrunRequest(rawTx))
 }
 
 /**
@@ -275,7 +274,9 @@ function removeRequestFromPool(hash) {
 module.exports = { 
     handleNewBackrunRequest, 
     getValidBackrunRequests,
+    removeRequestFromPool,
     decryptArcherswapTx,
+    parseBackrunRequest,
     getBackrunRequests,
     getVirtualReserves,
     cleanRequestsPool,

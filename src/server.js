@@ -9,6 +9,7 @@ const utils = require('./utils')
 
 let BLOCK_HEIGHT
 let POOLS  // Addresses for pools that are used by valid paths
+let requestListener
 
 async function init() {
     let startGasPrice = await utils.fetchGasPrice(config.settings.gas.gasSpeed)
@@ -117,6 +118,28 @@ async function startRequestUpdates() {
             )
         }
     })
+    app.post("/cancelRequest", async (req, res) => {
+        let requestHash = req.body
+        try {
+            if (utils.isHex(requestHash)) {
+                arbbot.cancelRequest(requestHash)
+                res.json({
+                    status: 1, 
+                    msg: 'OK'
+                })
+            } else {
+                res.json({
+                    status: 0, 
+                    msg: 'RequestError: Not in hex format'
+                })
+            }
+        } catch (e) {
+            res.json({
+                status: 0, 
+                msg: `InternalError:${e.msg}`
+            })
+        }
+    })
     app.post("/backrunRequest", async (req, res) => {
         let request = req.body
         let recvBlockHeight = BLOCK_HEIGHT  // Block height at which request was recieved
@@ -154,9 +177,15 @@ async function startRequestUpdates() {
             )
         }
     })
-    app.listen(port, () => {
+    requestListener = app.listen(port, () => {
         console.log(`Server running on port ${port}`)
     })
+}
+
+function stopRequestUpdates() {
+    if (requestListener) {
+        requestListener.close()
+    }
 }
 
 async function main() {
@@ -166,9 +195,10 @@ async function main() {
 
 module.exports = { 
     startRequestUpdates,
+    stopRequestUpdates,
     startListeners,
     logger,
     arbbot,
     main, 
-    init, 
+    init,
 }
