@@ -52,6 +52,10 @@ function isNumeric(value) {
     return /^-?\d+$/.test(value);
 }
 
+function isString(value) {
+	return (typeof value == 'string') && (value!='')
+}
+
 function modifyColors(it, describe) {
 	// Modify colors to distinguish between execution output and tests easier
 	const _clrYellow = '\x1b[33m'
@@ -88,6 +92,7 @@ describe('Logging', () => {
 		botOperator = new ethers.Wallet(config.settings.network.privateKey, ethers.provider)
         // Change save destination
         config.constants.paths.requests = __dirname + '/.test.requests.csv'
+        config.constants.paths.relayRequests = __dirname + '/.test.relayRequests.csv'
         config.constants.paths.opps = __dirname + '/.test.opps.csv'
     })
 
@@ -101,9 +106,10 @@ describe('Logging', () => {
 		// Clean the test logs
 		try { fs.unlinkSync(config.constants.paths.requests) } catch {} 
 		try { fs.unlinkSync(config.constants.paths.opps) } catch {} 
+		try { fs.unlinkSync(config.constants.paths.relayRequests) } catch {} 
 	})
 
-	describe('Log requests', () => {
+	describe('Log backrun requests', () => {
 
 		let signedTradeTxRequest
 
@@ -246,6 +252,10 @@ describe('Logging', () => {
 			signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
 		})
 
+		after(() => {
+			server.stopRequestUpdates()
+		})
+
 		it('All opportunities founds with `backrunRawRequest` should be saved to csv', async () => {
 			// Backrun raw request
 			let response = await arbbot.backrunRawRequest(
@@ -258,12 +268,12 @@ describe('Logging', () => {
 			expect(logger.getOpps().length).to.gt(0)
 			await logger.flush()  // Flush data from memory to disk
             let savedOpps = await csv().fromFile(config.constants.paths.opps)
-			expect(logger.getRequests().length).to.equal(0)  // Make sure temp memory is cleared
+			expect(logger.getOpps().length).to.equal(0)  // Make sure temp memory is cleared
 			// Expected response 
 			savedOpps.forEach(savedOpp => {
-				expect(typeof savedOpp.id == 'string' && savedOpp.id!=undefined).to.be.true
+				expect(isString(savedOpp.id)).to.be.true
 				expect(isNumeric(savedOpp.blockNumber)).to.be.true
-				expect(typeof savedOpp.path == 'string' && savedOpp.path!=undefined).to.be.true
+				expect(isString(savedOpp.path)).to.be.true
 				expect(savedOpp.backrunTxs).to.equal(signedTradeTxRequest)
 				expect(isNumeric(savedOpp.inputAmount)).to.be.true
 				expect(isNumeric(savedOpp.grossProfit)).to.be.true
@@ -273,25 +283,25 @@ describe('Logging', () => {
 			})
 		})
 
-		it('All opportunities founds with `handleOpps` should be saved to csv', async () => {
+		it('All opportunities founds with `executeOpps` should be saved to csv', async () => {
 			// Find opps and "handle them"
-			let request = backrunner.parseBackrunRequest(signedTradeTxRequest)
-    		let opps = arbbot.getOppsForRequest(request)
-			let response = await arbbot.handleOpps(
-				await ethers.provider.getBlockNumber(),
-				opps
+			let backrunRequest = backrunner.parseBackrunRequest(signedTradeTxRequest)
+    		let opps = arbbot.getOppsForRequest(backrunRequest)
+			let { request, response } = await arbbot.executeOpps(
+				opps,
+				await ethers.provider.getBlockNumber()
 			)
-			expect(response).to.be.true
+			expect(request.body).to.include(signedTradeTxRequest)
 			// Confirm the request and its response were saved
 			expect(logger.getOpps().length).to.gt(0)
 			await logger.flush()  // Flush data from memory to disk
             let savedOpps = await csv().fromFile(config.constants.paths.opps)
-			expect(logger.getRequests().length).to.equal(0)  // Make sure temp memory is cleared
+			expect(logger.getOpps().length).to.equal(0)  // Make sure temp memory is cleared
 			// Expected response 
 			savedOpps.forEach(savedOpp => {
-				expect(typeof savedOpp.id == 'string' && savedOpp.id!=undefined).to.be.true
+				expect(isString(savedOpp.id)).to.be.true
 				expect(isNumeric(savedOpp.blockNumber)).to.be.true
-				expect(typeof savedOpp.path == 'string' && savedOpp.path!=undefined).to.be.true
+				expect(isString(savedOpp.path)).to.be.true
 				expect(savedOpp.backrunTxs).to.equal(signedTradeTxRequest)
 				expect(isNumeric(savedOpp.inputAmount)).to.be.true
 				expect(isNumeric(savedOpp.grossProfit)).to.be.true
@@ -299,6 +309,70 @@ describe('Logging', () => {
 				expect(isNumeric(savedOpp.netProfit)).to.be.true
 				expect(isNumeric(savedOpp.netProfit)).to.be.true
 			})
+		})
+
+	})
+
+	describe('Log requests and responses to relay', () => {
+
+		before(async () => {
+			// Start arb bot and request listener
+			await server.init()
+			txMng.init(ethers.provider, botOperator)
+			server.startRequestUpdates()
+			// Make request and sign it
+			let txCallArgs = {
+				amountIn: ethers.utils.parseEther('900'),
+				amountOut: ZERO,
+				method: 'swapExactETHForTokens',
+				tknPath: [ assets.WETH, assets.DAI ],
+				router: unilikeRouters.uniswap, 
+				deadline: parseInt(Date.now()/1e3)+300
+			}
+			let UniswapRouter = new ethers.Contract(
+				txCallArgs.router,
+				abis['uniswapRouter'] 
+			)
+			let nextNonce = await signer.getTransactionCount()
+			nextNonce = nextNonce==0 ? 1 : nextNonce
+			let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
+				txCallArgs.amountOut, 
+				txCallArgs.tknPath, 
+				signer.address,
+				txCallArgs.deadline, 
+				{ 
+					gasPrice: ZERO, 
+					value: txCallArgs.amountIn, 
+					nonce: nextNonce, 
+				}
+			)
+			signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+		})
+
+		after(() => {
+			server.stopRequestUpdates()
+		})
+
+		it('Response to sending bundle to Archer relay should be saved in csv', async () => {
+			// Find opps and execute them
+			let backrunRequest = backrunner.parseBackrunRequest(signedTradeTxRequest)
+    		let opps = arbbot.getOppsForRequest(backrunRequest)
+			let { request, response } = await arbbot.executeOpps(opps, await ethers.provider.getBlockNumber())
+			expect(response).to.be.not.undefined
+			console.log(response)
+			// Confirm the request and its response were saved
+			expect(logger.getRelayRequests().length).to.equal(1)
+			await logger.flush()  // Flush data from memory to disk
+			// Confirm the request and its response were saved
+            let [ savedRelayRequest ]  = await csv().fromFile(config.constants.paths.relayRequests)
+			expect(logger.getRelayRequests().length).to.equal(0)  // Make sure temp memory is cleared
+			// Expected response 
+            expect(isString(savedRelayRequest.id)).to.be.true
+            expect(savedRelayRequest.request).to.include(signedTradeTxRequest)
+            expect(savedRelayRequest.response).to.equal(JSON.stringify(response))
+            expect(isNumeric(savedRelayRequest.blockNumber)).to.be.true
+            expect(isNumeric(savedRelayRequest.timestampRecv)).to.be.true
+            expect(isNumeric(savedRelayRequest.timestampResp)).to.be.true
 		})
 
 	})

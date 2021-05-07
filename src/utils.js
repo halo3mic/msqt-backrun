@@ -108,68 +108,9 @@ async function submitBundleToArcher({ ethCall, senderAddress, signature }) {
             'X-Flashbots-Signature': senderAddress+':'+signature
         }
     }
-    return fetch(config.constants.archerBundleEndpoint, request)
+    let response = await fetch(config.constants.archerBundleEndpoint, request)
         .then(response => response.json())
-}
-
-/**
- * Log request to backrun tx-request and bot's response 
- * @param {String} method Method through which request was sent
- * @param {String} request Raw transaction to be backrun
- * @param {Object} response Response sent to the sender
- * @param {Integer} recvBlockHeight Block number when the request was recieved
- * @param {Integer} recvTimestamp Time when the request was recieved [ms]
- * @param {Integer} returnTimestamp Time when the response was sent [ms]
- */
-function logRequest(
-        method,
-        rawTx, 
-        response, 
-        recvBlockHeight, 
-        recvTimestamp, 
-        respTimestamp
-    ) {
-        logRowsToCsv(config.constants.paths.requests, [{
-            id: idFromVals(arguments), 
-            blockNumber: recvBlockHeight,
-            timestampRecv: recvTimestamp, 
-            timestampResp: respTimestamp, 
-            method,
-            rawTx, 
-            response: JSON.stringify(response)
-        }])
-}
-
-function logOpps(opps, blockNumber) {
-    logRowsToCsv(config.constants.paths.opps, opps.map(opp => {
-        return {
-            id: idFromVals(arguments),
-            blockNumber, 
-            path: opp.pathId,
-            grossProfit: opp.grossProfit, 
-            netProfit: opp.netProfit, 
-            gasAmount: opp.gasAmount, 
-            inputAmount: opp.inputAmount, 
-            backrunTxs: opp.backrunTxs.join(',')
-        }
-    }))
-}
-
-/**
- * Save rows in CSV file
- * If file doesn't exist method creates it with columns
- * @param {Array} rows Rows to save
- * @param {String} saveTo Path to CSV file
- */
- function logRowsToCsv(saveTo, rows) {
-    let writer = csvWriter()
-    let headers = {sendHeaders: false}
-    if (!fs.existsSync(saveTo))
-        headers = {headers: Object.keys(rows[0])}
-    writer = csvWriter(headers);
-    writer.pipe(fs.createWriteStream(saveTo, {flags: 'a'}));
-    rows.forEach(e => writer.write(e))
-    writer.end()
+    return { request, response }
 }
 
 /**
@@ -224,7 +165,6 @@ module.exports = {
     normalizeUnits,
     fetchGasPrice, 
     invertMap,
-    logOpps,
     sleep, 
     isHex
 }

@@ -20,6 +20,7 @@
     "gasPriceEndpoint": "https://www.gasnow.org/api/v3/gas/price", 
     "paths": {
         "requests": "./logs/requests.csv", 
+        "relayRequests": "./logs/relayRequests.csv", 
         "opps": "./logs/opps.csv"
     }
 }

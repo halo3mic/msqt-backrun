@@ -41,22 +41,90 @@ async function init(provider, signer, startGasPrice, whitelistedPaths) {
 }
 
 /**
- * Returns pool reserves in order of the arbitrage path
- * @param {Array} path Token sequence of an arbitrage opportunity
- * @param {Object} virtualReserves Hypotetical reserves from a backrun trade 
+ * Find opportunities for backrunning the tx requests and execute the best
+ * @param {Integer} blockNumber 
+ */
+ async function handleBlockUpdate(blockNumber) {
+    await backrunPendingRequests(blockNumber)  // Find and execute backrunning opportunities
+    await updateBotBal()  // Update dispatcher balance
+    await logger.flush()  // Write from memory to storage
+}
+
+async function backrunPendingRequests(blockNumber) {
+    // Get only valid requests
+    let backrunRequests = await backrunner.getValidBackrunRequests()
+    // Get all opportunities for all requets and put them in a single array
+    let opps = backrunRequests.map(request => getOppsForRequest(request)).flat()
+    if (opps.length>0) {
+        await executeOpps(opps, blockNumber)
+    }
+}
+
+/**
+ * Return opportunities that arise if request is executed
+ * @param {Object} txRequest 
  * @returns {Array}
  */
-function getReservePath(path, virtualReserves) {
-    let reservePath = []
-    for (let i=0; i<path.pools.length; i++) {
-        // If exists choose virtual reserve (hypothetical change)
-        let poolReserves = virtualReserves[path.pools[i]] || RESERVES[path.pools[i]]
-        let r0 = poolReserves[path.tkns[i]]
-        let r1 = poolReserves[path.tkns[i+1]]
-        reservePath.push(r0)
-        reservePath.push(r1)
+ function getOppsForRequest(txRequest) {
+    // Filter only for paths with pools involved in backrun tx
+    let pathsWithBackrun = instrMng.filterPathsByPools(
+        getPaths(), 
+        txRequest.callArgs.poolIds
+    )
+    let { virtualReserves, amountOut} = backrunner.getVirtualReserves(
+        RESERVES, 
+        txRequest.callArgs
+    )
+    if (amountOut.gte(txRequest.callArgs.amountOutMin)) {
+        let opps = getOppsForVirtualReserves(pathsWithBackrun, virtualReserves)
+        // Add backruned-tx to the opportunity object
+        opps = opps.map(opp => {
+            opp.backrunTxs = [ txRequest.signedRequest ]
+            return opp
+        })
+        return opps
     }
-    return reservePath
+    return []
+}
+
+/**
+ * Return opportunities from paths for virtual reserves
+ * @param {Array} pathsToCheck The paths to be checked
+ * @param {Object} virtualReserves Hypotetical reserves from a backrun trade  
+ * @returns {Array}
+ */
+ function getOppsForVirtualReserves(pathsToCheck, virtualReserves) {
+    let profitableOpps = []
+    pathsToCheck.forEach(path => {
+        let opp = arbForPath(path, virtualReserves)
+        if (opp) { profitableOpps.push(opp) }
+    })
+    return profitableOpps
+}
+
+/**
+ * Execute opportunity and log it to console and to storage
+ * @param {Array} opps 
+ * @param {Integer} blockNumber 
+ */
+ async function executeOpps(opps, blockNumber) {
+    opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
+    // Execute only the best opportunity found 
+    // TODO: In the future handle more opportunities at once
+    opps = [ opps[0] ]
+    let submitTimestamp = Date.now()
+    let r = await txManager.executeBundleForOpps(opps, blockNumber)
+    let responseTimestamp = Date.now()
+    // Log to csv
+    logger.logOpps(opps, blockNumber)
+    logger.logRelayRequest(
+        blockNumber,
+        submitTimestamp, 
+        responseTimestamp, 
+        r.request, 
+        r.response
+    )
+    return r
 }
 
 /**
@@ -65,7 +133,7 @@ function getReservePath(path, virtualReserves) {
  * @param {Object} virtualReserves Hypotetical reserves from a backrun trade 
  * @returns {Object}
  */
-function arbForPath(path, virtualReserves) {
+ function arbForPath(path, virtualReserves) {
     let reservePath = getReservePath(path, virtualReserves)
     let optimalIn = math.getOptimalAmountForPath(reservePath)
     if (optimalIn.gt("0")) {
@@ -92,82 +160,22 @@ function arbForPath(path, virtualReserves) {
 }
 
 /**
- * Return opportunities from paths for virtual reserves
- * @param {Array} pathsToCheck The paths to be checked
- * @param {Object} virtualReserves Hypotetical reserves from a backrun trade  
+ * Returns pool reserves in order of the arbitrage path
+ * @param {Array} path Token sequence of an arbitrage opportunity
+ * @param {Object} virtualReserves Hypotetical reserves from a backrun trade 
  * @returns {Array}
  */
-function getOppsForVirtualReserves(pathsToCheck, virtualReserves) {
-    let profitableOpps = []
-    pathsToCheck.forEach(path => {
-        let opp = arbForPath(path, virtualReserves)
-        if (opp) { profitableOpps.push(opp) }
-    })
-    return profitableOpps
-}
-
-/**
- * Return opportunities that arise if request is executed
- * @param {Object} txRequest 
- * @returns {Array}
- */
-function getOppsForRequest(txRequest) {
-    // Filter only for paths with pools involved in backrun tx
-    let pathsWithBackrun = instrMng.filterPathsByPools(
-        getPaths(), 
-        txRequest.callArgs.poolIds
-    )
-    let { virtualReserves, amountOut} = backrunner.getVirtualReserves(
-        RESERVES, 
-        txRequest.callArgs
-    )
-    if (amountOut.gte(txRequest.callArgs.amountOutMin)) {
-        let opps = getOppsForVirtualReserves(pathsWithBackrun, virtualReserves)
-        // Add backruned-tx to the opportunity object
-        opps = opps.map(opp => {
-            opp.backrunTxs = [ txRequest.signedRequest ]
-            return opp
-        })
-        return opps
+ function getReservePath(path, virtualReserves) {
+    let reservePath = []
+    for (let i=0; i<path.pools.length; i++) {
+        // If exists choose virtual reserve (hypothetical change)
+        let poolReserves = virtualReserves[path.pools[i]] || RESERVES[path.pools[i]]
+        let r0 = poolReserves[path.tkns[i]]
+        let r1 = poolReserves[path.tkns[i+1]]
+        reservePath.push(r0)
+        reservePath.push(r1)
     }
-    return []
-}
-
-/**
- * Find opportunities for backrunning the tx requests and execute the best
- * @param {Integer} blockNumber 
- */
-async function handleBlockUpdate(blockNumber) {
-    await backrunPendingRequests()
-    await updateBotBal()  // Update dispatcher balance
-    await logger.flush()  // Write from memory to storage
-}
-
-async function backrunPendingRequests() {
-    // Get only valid requests
-    let backrunRequests = await backrunner.getValidBackrunRequests()
-    // Get all opportunities for all requets and put them in a single array
-    let opps = backrunRequests.map(request => getOppsForRequest(request)).flat()
-    if (opps.length>0) {
-        await handleOpps(blockNumber, opps)
-    }
-}
-
-/**
- * Execute opportunity and log it to console and to storage
- * @param {Integer} blockNumber 
- * @param {Array} opps 
- */
-async function handleOpps(blockNumber, opps) {
-    opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
-    // Execute only the best opportunity found 
-    // TODO: In the future handle more opportunities at once
-    opps = [ opps[0] ]
-    let response = await txManager.executeBundles(opps, blockNumber)
-    // Log to csv
-    logger.logOpps(opps, blockNumber)
-    console.log(response)  // Response from Archer
-    return true
+    return reservePath
 }
 
 /**
@@ -308,7 +316,7 @@ module.exports = {
     backrunRawRequest,
     updateReserves,
     cancelRequest,
-    handleOpps,
+    executeOpps,
     getPaths,
     init, 
     // Test visibility:

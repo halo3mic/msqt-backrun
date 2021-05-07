@@ -20,7 +20,7 @@ function init(provider, signer) {
  * @param {Number} blockNumber 
  * @returns {Object}
  */
-async function executeBundles(opps, blockNumber) {
+async function executeBundleForOpps(opps, blockNumber) {
     let bundle = await oppsToBundle(opps, blockNumber)
     if (bundle.length>0) {
         try {
@@ -28,7 +28,6 @@ async function executeBundles(opps, blockNumber) {
                 console.log('Calling bundle...')
                 return callBundles(bundle, blockNumber+1)
             } else {
-                console.log('Sending bundle...')
                 return sendBundles(bundle, blockNumber+1)
             }
         } catch (e) {
@@ -67,15 +66,9 @@ async function oppsToBundle(opps, blockNumber) {
  * @param {Boolean} debugOnly 
  * @returns {Object}
  */
-async function sendBundles(bundle, targetBlock, debugOnly=false) {
+async function sendBundles(bundle, targetBlock) {
     let archerApiParams = await getArcherSendBundleParams(bundle, targetBlock)
-    if (debugOnly) {
-        return archerApiParams
-    }
-    let t0 = Date.now()
     let response = await utils.submitBundleToArcher(archerApiParams)
-    let t1 = Date.now()
-    console.log(`Latency: ${t1-t0} ms`)
     return response
 }
 
@@ -87,23 +80,9 @@ async function sendBundles(bundle, targetBlock, debugOnly=false) {
  * @param {Boolean} debugOnly 
  * @returns {Object}
  */
-async function callBundles(bundles, targetBlock, debugOnly=false) {
-    let ethCall = await getArcherCallBundleParams(bundles, targetBlock)
-    let inter = ethers.utils.id(JSON.stringify(ethCall))
-    let signature = await SIGNER.signMessage(inter)
-    let senderAddress = SIGNER.address
-    let archerApiParams = {
-        ethCall, 
-        signature, 
-        senderAddress
-    }
-    if (debugOnly) {
-        return archerApiParams
-    }
-    let t0 = Date.now()
+async function callBundles(bundles, targetBlock) {
+    let archerApiParams = await getArcherCallBundleParams(bundles, targetBlock)
     let response = await utils.submitBundleToArcher(archerApiParams)
-    let t1 = Date.now()
-    console.log(`Latency: ${t1-t0} ms`)
     return response
 }
 
@@ -271,8 +250,8 @@ async function formTipperTx(opp) {
 module.exports = { 
     getArcherSendBundleParams,
     getArcherCallBundleParams,
+    executeBundleForOpps,
     formDispatcherTx,
-    executeBundles,
     oppsToBundle,
     sendBundles,
     init, 

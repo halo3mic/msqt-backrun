@@ -71,9 +71,43 @@ class Opportunity extends Table {
     }
 }
 
+class RelayRequest extends Table {
+
+    static rowsTemp = [] // Hold rows of requests in memory until they are written
+    static getRows = () => this.rowsTemp
+    static getSavePath = () => config.constants.paths.relayRequests
+    /**
+     * Add row to staging area - ready to be written to csv
+     * @param {String} request POST request with a bundle
+     * @param {Object} response Response from the relay
+     * @param {Integer} recvBlockHeight Block number when the request was made
+     * @param {Integer} submitTimestamp Time when the request was sent [ms]
+     * @param {Integer} responseTimestamp Time when the response was recieved [ms]
+     */
+    static addRow(
+        recvBlockHeight, 
+        submitTimestamp, 
+        responseTimestamp,
+        request, 
+        response
+    ) {
+        this.rowsTemp.push({
+            id: idFromVals(arguments), 
+            blockNumber: recvBlockHeight,
+            timestampRecv: submitTimestamp, 
+            timestampResp: responseTimestamp, 
+            request: JSON.stringify(request), 
+            response: JSON.stringify(response)
+        })
+    }
+}
+
 async function flush() {
-    await Request.flush()
-    await Opportunity.flush()
+    return Promise.all([
+        RelayRequest.flush(),
+        Opportunity.flush(),
+        Request.flush(),
+    ])
 }
 
 function logRequest(...data) {
@@ -86,6 +120,10 @@ function logOpps(opps, blockNumber) {
     }
 }
 
+function logRelayRequest(...data) {
+    RelayRequest.addRow(...data)
+}
+
 function getRequests() {
     return Request.getRows()
 }
@@ -93,6 +131,11 @@ function getRequests() {
 function getOpps() {
     return Opportunity.getRows()
 }
+
+function getRelayRequests() {
+    return RelayRequest.getRows()
+}
+
 
 /**
 * Save rows in CSV file
@@ -123,8 +166,10 @@ async function logRowsToCsv(rows, saveTo) {
 }
 
 module.exports = {
+    getRelayRequests,
     getRequests,
     getOpps,
+    logRelayRequest,
     logRequest, 
     logOpps,
     flush
