@@ -274,6 +274,7 @@ function removeRequestFromPool(hash) {
 module.exports = { 
     handleNewBackrunRequest, 
     getValidBackrunRequests,
+    removeRequestFromPool,
     decryptArcherswapTx,
     parseBackrunRequest,
     getBackrunRequests,

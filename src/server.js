@@ -103,6 +103,28 @@ async function startRequestUpdates() {
             })
         }
     })
+    app.post("/cancelRequest", async (req, res) => {
+        let requestHash = req.body
+        try {
+            if (utils.isHex(requestHash)) {
+                arbbot.cancelRequest(requestHash)
+                res.json({
+                    status: 1, 
+                    msg: 'OK'
+                })
+            } else {
+                res.json({
+                    status: 0, 
+                    msg: 'RequestError: Not in hex format'
+                })
+            }
+        } catch (e) {
+            res.json({
+                status: 0, 
+                msg: `InternalError:${e.msg}`
+            })
+        }
+    })
     app.post("/backrunRequest", async (req, res) => {
         let request = req.body
         try {

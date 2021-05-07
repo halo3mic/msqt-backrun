@@ -236,6 +236,10 @@ function handleNewBackrunRequest(...args) {
     return backrunner.handleNewBackrunRequest(...args)
 }
 
+function cancelRequest(hash) {
+    return backrunner.removeRequestFromPool(hash)
+}
+
 function getBackrunRequests() {
     return backrunner.getBackrunRequests()
 }
@@ -298,6 +302,7 @@ module.exports = {
     handleBlockUpdate,
     backrunRequest,
     updateReserves,
+    cancelRequest,
     getPaths,
     init, 
     // Test visibility:
@@ -306,8 +311,8 @@ module.exports = {
     getOppsForRequest,
     getReservePath, 
     updateGasPrice,
+    updateBotBal,
     _setReserves,
     getReserves,
-    updateBotBal,
     arbForPath, 
 }
