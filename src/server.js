@@ -109,7 +109,7 @@ async function startRequestUpdates() {
         } finally {
             res.json(response)
             let returnTimestamp = Date.now()
-            logger.logRequest(
+            logger.logBackrunRequest(
                 'submitRequest',
                 request, 
                 response,
@@ -145,7 +145,7 @@ async function startRequestUpdates() {
         } finally {
             res.json(response)
             let returnTimestamp = Date.now()
-            logger.logRequest(
+            logger.logBackrunRequest(
                 'cancelRequest',
                 request, 
                 response,
@@ -182,7 +182,7 @@ async function startRequestUpdates() {
         } finally {
             res.json(response)
             let returnTimestamp = Date.now()
-            logger.logRequest(
+            logger.logBackrunRequest(
                 'backrunRequest',
                 request, 
                 response,

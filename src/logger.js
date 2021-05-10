@@ -18,7 +18,7 @@ class Table {
     }
 }
 
-class Request extends Table {
+class BackrunRequest extends Table {
 
     static rowsTemp = [] // Hold rows of requests in memory until they are written
     static getRows = () => this.rowsTemp
@@ -106,12 +106,12 @@ async function flush() {
     return Promise.all([
         RelayRequest.flush(),
         Opportunity.flush(),
-        Request.flush(),
+        BackrunRequest.flush(),
     ])
 }
 
-function logRequest(...data) {
-    Request.addRow(...data)
+function logBackrunRequest(...data) {
+    BackrunRequest.addRow(...data)
 }
 
 function logOpps(opps, blockNumber) {
@@ -124,8 +124,8 @@ function logRelayRequest(...data) {
     RelayRequest.addRow(...data)
 }
 
-function getRequests() {
-    return Request.getRows()
+function getBackrunRequests() {
+    return BackrunRequest.getRows()
 }
 
 function getOpps() {
@@ -167,10 +167,10 @@ async function logRowsToCsv(rows, saveTo) {
 
 module.exports = {
     getRelayRequests,
-    getRequests,
+    getBackrunRequests,
     getOpps,
     logRelayRequest,
-    logRequest, 
+    logBackrunRequest, 
     logOpps,
     flush
 }

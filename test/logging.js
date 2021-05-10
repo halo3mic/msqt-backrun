@@ -68,10 +68,10 @@ describe('Logging', () => {
 			expect(response.status).to.equal(1)
 			expect(response.msg).to.equal('OK')
 			// Confirm the request and its response were saved
-			expect(logger.getRequests().length).to.equal(1)
+			expect(logger.getBackrunRequests().length).to.equal(1)
 			await logger.flush()  // Flush data from memory to disk
             let [ savedRequest ] = await csv().fromFile(config.constants.paths.requests)
-            expect(logger.getRequests().length).to.equal(0)  // Make sure temp memory is cleared
+            expect(logger.getBackrunRequests().length).to.equal(0)  // Make sure temp memory is cleared
 			// Expected response 
             expect(savedRequest.method).to.equal('submitRequest')
             expect(savedRequest.request).to.equal(signedTradeTxRequest)
@@ -93,10 +93,10 @@ describe('Logging', () => {
 			expect(responseCancel.status).to.equal(1)
 			expect(responseCancel.msg).to.equal('OK')
 			// Confirm the request and its response were saved
-			expect(logger.getRequests().length).to.equal(2)  // Submit the request & Cancel the request
+			expect(logger.getBackrunRequests().length).to.equal(2)  // Submit the request & Cancel the request
 			await logger.flush()  // Flush data from memory to disk
             let [ submitRequest, cancelRequest ] = await csv().fromFile(config.constants.paths.requests)
-            expect(logger.getRequests().length).to.equal(0)  // Make sure temp memory is cleared
+            expect(logger.getBackrunRequests().length).to.equal(0)  // Make sure temp memory is cleared
 			// Expected response
             expect(cancelRequest.method).to.equal('cancelRequest')
             expect(cancelRequest.request).to.equal(txRequestHash)
@@ -113,10 +113,10 @@ describe('Logging', () => {
 			expect(response.status).to.equal(1)
 			expect(response.msg).to.equal('OK')
 			// Confirm the request and its response were saved
-			expect(logger.getRequests().length).to.equal(1)
+			expect(logger.getBackrunRequests().length).to.equal(1)
 			await logger.flush()  // Flush data from memory to disk
             let [ savedRequest ] = await csv().fromFile(config.constants.paths.requests)
-            expect(logger.getRequests().length).to.equal(0)  // Make sure temp memory is cleared
+            expect(logger.getBackrunRequests().length).to.equal(0)  // Make sure temp memory is cleared
 			// Expected response 
             expect(savedRequest.method).to.equal('backrunRequest')
             expect(savedRequest.request).to.equal(signedTradeTxRequest)
