@@ -1,99 +1,11 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
-
-const { assets, unilikeRouters } = require('./addresses.json') 
-const reservesMng = require('../src/reservesManager')
-const instrMng = require('../src/instrManager')
-const backrunner = require('../src/backrunner')
-const logger = require('../src/logger')
-const txMng = require('../src/txManager')
-const server = require('../src/server')
-const arbbot = require('../src/arbbot')
-const config = require('../src/config')
-const fetch = require('node-fetch')
-const csv = require('csvtojson')
-const utils = require('../src/utils')
-const fs = require('fs');
-const { response } = require("express");
-
-const ZERO = ethers.constants.Zero
-
-async function makeAccountGen() {
-	function* getNewAccount() {
-		for (let account of accounts) {
-			yield account
-		}
-	}
-	accounts = await ethers.getSigners();
-	let newAccountGen = getNewAccount()
-	let genNewAccount = () => newAccountGen.next().value
-	return genNewAccount
-}
-
-async function impersonateAccount(address) {
-	return network.provider.request({
-		method: "hardhat_impersonateAccount",
-		params: [ address ],
-	  })
-}
-
-async function postToBot(method, data) {
-    return fetch(
-        'http://localhost:8888/'+method, 
-        {
-            method: 'post',
-            body:    data,
-            headers: { 'Content-Type': 'application/text' },
-        }
-    )
-}
-
-function isNumeric(value) {
-    return /^-?\d+$/.test(value);
-}
-
-function isString(value) {
-	return (typeof value == 'string') && (value!='')
-}
-
-function modifyColors(it, describe) {
-	// Modify colors to distinguish between execution output and tests easier
-	const _clrYellow = '\x1b[33m'
-	const _clrCyan = '\x1b[36m'
-	const _clrReset = '\x1b[0m'
-	var originalIt = it
-	it = (description, fun) => {
-		return originalIt(_clrCyan+description+_clrReset, fun)
-	}
-	var originalDescribe = describe
-	describe = (description, fun) => {
-		return originalDescribe(_clrYellow+description+_clrReset, fun)
-	}
-	return [ it, describe ]
-}
-
-[ it, describe ]  = modifyColors(it, describe)
+require('./helpers/helpers').load()
 
 describe('Logging', () => {
-
-	let genNewAccount, botOperator, signer, msqtTrader
-
-	async function topUpAccount(accountAddress, amount) {
-		let topper = genNewAccount()
-		await topper.sendTransaction({
-			to: accountAddress, 
-			value: amount
-		})
-	}
 	
 	before(async () => {
 		genNewAccount = await makeAccountGen()
 		signer = ethers.Wallet.createRandom().connect(ethers.provider)
 		botOperator = new ethers.Wallet(config.settings.network.privateKey, ethers.provider)
-        // Change save destination
-        config.constants.paths.requests = __dirname + '/.test.requests.csv'
-        config.constants.paths.relayRequests = __dirname + '/.test.relayRequests.csv'
-        config.constants.paths.opps = __dirname + '/.test.opps.csv'
     })
 
 	beforeEach(() => {

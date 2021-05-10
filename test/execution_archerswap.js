@@ -1,66 +1,7 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
-
-const { assets, unilikeRouters } = require('./addresses.json') 
-const reservesMng = require('../src/reservesManager')
-const instrMng = require('../src/instrManager')
-const backrunner = require('../src/backrunner')
-const txMng = require('../src/txManager')
-const config = require('../src/config')
-const arbbot = require('../src/arbbot')
-const server = require('../src/server')
-const fetch = require('node-fetch')
-const utils = require('../src/utils')
-
-const ZERO = ethers.constants.Zero
-
-async function makeAccountGen() {
-	function* getNewAccount() {
-		for (let account of accounts) {
-			yield account
-		}
-	}
-	accounts = await ethers.getSigners();
-	let newAccountGen = getNewAccount()
-	let genNewAccount = () => newAccountGen.next().value
-	return genNewAccount
-}
-
-async function impersonateAccount(address) {
-	return network.provider.request({
-		method: "hardhat_impersonateAccount",
-		params: [ address ],
-	  })
-}
-
-async function sendRequestToBot(rawTx) {
-    return fetch(
-        'http://localhost:8888/backrunRequest', 
-        {
-            method: 'post',
-            body:    rawTx,
-            headers: { 'Content-Type': 'application/text' },
-        }
-    )
-}
-
-// Modify colors to distinguish between execution output and tests easier
-const _clrYellow = '\x1b[33m'
-const _clrCyan = '\x1b[36m'
-const _clrReset = '\x1b[0m'
-var originalIt = it
-it = (description, fun) => {
-	return originalIt(_clrCyan+description+_clrReset, fun)
-}
-var originalDescribe = describe
-describe = (description, fun) => {
-	return originalDescribe(_clrYellow+description+_clrReset, fun)
-}
+require('./helpers/helpers').load()
 
 // Check that these backrun opportunities would actually result in profit
 describe('Execution', () => {
-
-	let genNewAccount, botOperator, signer
 	
 	before(async () => {
 		genNewAccount = await makeAccountGen()
@@ -69,7 +10,6 @@ describe('Execution', () => {
 		bank = genNewAccount()  // Source of test eth
 		await impersonateAccount(signer.address)
 		
-		await reservesMng.init(ethers.provider, [])
 		txMng.init(ethers.provider, botOperator)
 		backrunner.init(ethers.provider)  // Set a provider
 		// Init the bot and start the listeners
@@ -90,26 +30,6 @@ describe('Execution', () => {
 		// Restart requests pool with each test
 		backrunner.cleanRequestsPool()
 	})
-
-	async function topUpAccountWithETH(accountAddress, amount) {
-        let topper = genNewAccount()
-        await topper.sendTransaction({
-            to: accountAddress, 
-            value: amount
-        })
-    }
-
-	async function topUpAccountWithToken(accountAddress, tokenAddress, amount, unilikeRouterAddress) {
-        let router = unilikeRouterAddress || unilikeRouters.uniswap
-        let topper = genNewAccount()
-        let routerContract = new ethers.Contract(router, config.ABIS['uniswapRouter'])
-        await routerContract.connect(topper).swapETHForExactTokens(
-            amount, 
-            [ assets.WETH, tokenAddress ], 
-            accountAddress, 
-            parseInt(Date.now()/1e3)+3000
-        ).then(response => response.wait())
-    }
 
 	it('Executed opportunity should match predicted profit (execute arguments passed)', async () => {
 		// Create transaction for uniswap trade and sign it
@@ -187,39 +107,39 @@ describe('Execution', () => {
 		)
 	}).timeout(1000000)
 
-	it('`swapExactETHForTokensWithTipAmount` DAI->USDC on Uniswap (execute from bundles sent)', async () => {
-        let amountIn = ethers.utils.parseUnits('1000000')
-        let tipAmount = ethers.utils.parseUnits('0.1')
-        let archerswapRouter = new ethers.Contract(
-            config.constants.routers.archerswap,
-            config.abis['archerswapRouter'] 
-        )
-        let tradeTxRequest = await archerswapRouter.populateTransaction['swapExactETHForTokensWithTipAmount'](
-            unilikeRouters.uniswap,
-            [
-                amountIn,
-                ZERO, 
-                [ assets.DAI, assets.USDC ], 
-                signer.address,
-                parseInt(Date.now()/1e3)+3000, 
-            ],
-            tipAmount, 
-            { value: tipAmount, gasPrice: ZERO, gasLimit: config.settings.gas.gasLimit }
-        )
-        let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
-        // Send signed transaction request to the bot
-        let timestamp0 = Date.now()
-        let response = await sendRequestToBot(signedTradeTxRequest).then(r => r.json())
-        let timestamp1 = Date.now()
-        console.log(`Time for the bot to process the tx request: ${timestamp1-timestamp0} ms`)
-        expect(response.status).to.equal(1)
-        // Simulate bundle with eth_callBundle
-        let callBundleArgs = await txMng.getArcherCallBundleParams(
-            response.result.ethCall.params[0], 
-            parseInt(response.result.ethCall.params[1], 16)
-        )
-        let responseArcherCall = await utils.submitBundleToArcher(callBundleArgs)
-        console.log(responseArcherCall)
-    }).timeout(1000000)
+	// it('`swapExactETHForTokensWithTipAmount` DAI->USDC on Uniswap (execute from bundles sent)', async () => {
+    //     let amountIn = ethers.utils.parseUnits('1000000')
+    //     let tipAmount = ethers.utils.parseUnits('0.1')
+    //     let archerswapRouter = new ethers.Contract(
+    //         config.constants.routers.archerswap,
+    //         config.abis['archerswapRouter'] 
+    //     )
+    //     let tradeTxRequest = await archerswapRouter.populateTransaction['swapExactETHForTokensWithTipAmount'](
+    //         unilikeRouters.uniswap,
+    //         [
+    //             amountIn,
+    //             ZERO, 
+    //             [ assets.DAI, assets.USDC ], 
+    //             signer.address,
+    //             parseInt(Date.now()/1e3)+3000, 
+    //         ],
+    //         tipAmount, 
+    //         { value: tipAmount, gasPrice: ZERO, gasLimit: config.settings.gas.gasLimit }
+    //     )
+    //     let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+    //     // Send signed transaction request to the bot
+    //     let timestamp0 = Date.now()
+    //     let response = await sendRequestToBot(signedTradeTxRequest).then(r => r.json())
+    //     let timestamp1 = Date.now()
+    //     console.log(`Time for the bot to process the tx request: ${timestamp1-timestamp0} ms`)
+    //     expect(response.status).to.equal(1)
+    //     // Simulate bundle with eth_callBundle
+    //     let callBundleArgs = await txMng.getArcherCallBundleParams(
+    //         response.result.ethCall.params[0], 
+    //         parseInt(response.result.ethCall.params[1], 16)
+    //     )
+    //     let responseArcherCall = await utils.submitBundleToArcher(callBundleArgs)
+    //     console.log(responseArcherCall)
+    // }).timeout(1000000)
 
 })

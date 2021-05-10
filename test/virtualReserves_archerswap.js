@@ -1,47 +1,4 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
-
-const { assets, unilikeRouters } = require('./addresses.json') 
-const reservesMng = require('../src/reservesManager')
-const instrMng = require('../src/instrManager')
-const backrunner = require('../src/backrunner')
-const txMng = require('../src/txManager')
-const config = require('../src/config')
-const arbbot = require('../src/arbbot')
-
-const ZERO = ethers.constants.Zero
-
-async function makeAccountGen() {
-	function* getNewAccount() {
-		for (let account of accounts) {
-			yield account
-		}
-	}
-	accounts = await ethers.getSigners();
-	let newAccountGen = getNewAccount()
-	let genNewAccount = () => newAccountGen.next().value
-	return genNewAccount
-}
-
-async function impersonateAccount(address) {
-	return network.provider.request({
-		method: "hardhat_impersonateAccount",
-		params: [ address ],
-	  })
-}
-
-// Modify colors to distinguish between execution output and tests easier
-const _clrYellow = '\x1b[33m'
-const _clrCyan = '\x1b[36m'
-const _clrReset = '\x1b[0m'
-var originalIt = it
-it = (description, fun) => {
-	return originalIt(_clrCyan+description+_clrReset, fun)
-}
-var originalDescribe = describe
-describe = (description, fun) => {
-	return originalDescribe(_clrYellow+description+_clrReset, fun)
-}
+require('./helpers/helpers').load()
 
 describe('Virtual reserves', () => {
 
