@@ -33,7 +33,7 @@ function startListeningForBlocks() {
     provider.on('block', async (blockNumber) => {
         if (blockNumber > BLOCK_HEIGHT) {
             BLOCK_HEIGHT = blockNumber
-            console.log(`\n${'^'.repeat(20)} ${blockNumber} ${'^'.repeat(20)}\n`)
+            console.log(`{ "action": "blockReceived", "currentBlock": "${blockNumber}" }`)
             let logs = await provider.getLogs(filter)
             let changedPools = []
             logs.forEach(l => {
