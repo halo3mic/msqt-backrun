@@ -1,12 +1,12 @@
 {
-  "name": "MSQT Backrun",
+  "name": "msqt_backrun",
   "version": "1.0.0",
   "description": "Arbitrage opportunities across unilike pools with backrunning trades.",
   "main": "src/index.js",
   "scripts": {
     "test": "npx hardhat test",
     "msqt-forever": "forever src/index.js",
-    "msqt": "node src/index.js"
+    "start": "node src/index.js"
   },
   "repository": {
     "type": "git",

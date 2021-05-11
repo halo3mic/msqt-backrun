@@ -67,6 +67,7 @@ async function oppsToBundle(opps, blockNumber) {
  * @returns {Object}
  */
 async function sendBundles(bundle, targetBlock) {
+    console.log(`{"action": "submittingOEBundle", "bundle": ${bundle}, "targetBlock": "${targetBlock}"}`)
     let archerApiParams = await getArcherSendBundleParams(bundle, targetBlock)
     let response = await utils.submitBundleToArcher(archerApiParams)
     return response

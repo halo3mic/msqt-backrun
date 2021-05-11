@@ -12,6 +12,7 @@ let POOLS  // Addresses for pools that are used by valid paths
 let requestListener
 
 async function init() {
+    console.log('Initializing')
     let startGasPrice = await utils.fetchGasPrice(config.settings.gas.gasSpeed)
     await arbbot.init(provider, signer, startGasPrice)
     BLOCK_HEIGHT = await provider.getBlockNumber()
@@ -21,7 +22,6 @@ async function init() {
 function startListeners() {
     startListeningForBlocks()
     startRequestUpdates()
-    startGasUpdates()
 }
 
 /**
@@ -46,30 +46,31 @@ function startListeningForBlocks() {
                 }
             })
             arbbot.handleBlockUpdate(blockNumber)
+            try {
+                const gasPrice = await utils.fetchGasPrice(config.settings.gas.gasSpeed)
+                arbbot.updateGasPrice(gasPrice)
+            } catch(e) {
+                console.log('Failed to fetch gas price')
+                console.log(e)
+            }
+            
         }
     })
-}
-
-
-async function startGasUpdates() {
-    while (1) {
-        try {
-            arbbot.updateGasPrice(
-                await utils.fetchGasPrice(config.settings.gas.gasSpeed)
-            )
-        } catch (e) {
-            console.log('Failed to fetch gas price')
-            console.log(e)
-        } finally {
-            // Wait to avoid reaching request limit for API
-            utils.sleep(config.settings.gas.updatePeriod)
-        }
-    }
 }
 
 async function startRequestUpdates() {
     const port = parseInt(process.env.PORT)
     const app = express()
+
+    // Health check endpoint
+    app.get('/', async (_req, res) => {
+        try {
+        res.send('ok')
+        } catch (e) {
+        res.status(503).send(e)
+        }
+    })
+
     // Manual decoding of body
     app.use (function(req, res, next) {
         var data=''
@@ -92,18 +93,18 @@ async function startRequestUpdates() {
             if (utils.isHex(request)) {
                 arbbot.handleNewBackrunRequest(request)
                 response = {
-                    status: 1, 
+                    status: 200, 
                     msg: 'OK'
                 }
             } else {
                 response = {
-                    status: 0, 
+                    status: 422, 
                     msg: 'RequestError: Not in hex format'
                 }
             }
         } catch (e) {
             response = {
-                status: 0, 
+                status: 503, 
                 msg: `InternalError: ${e}`
             }
         } finally {
@@ -128,18 +129,18 @@ async function startRequestUpdates() {
             if (utils.isHex(request)) {
                 arbbot.cancelRequest(request)
                 response = {
-                    status: 1, 
+                    status: 200, 
                     msg: 'OK'
                 }
             } else {
                 response = {
-                    status: 0, 
+                    status: 422, 
                     msg: 'RequestError: Not in hex format'
                 }
             }
         } catch (e) {
             response = {
-                status: 0, 
+                status: 503, 
                 msg: `InternalError: ${e}`
             }
         } finally {
@@ -164,19 +165,19 @@ async function startRequestUpdates() {
             if (utils.isHex(request)) {
                 let result = await arbbot.backrunRawRequest(request, recvBlockHeight)
                 response = {
-                    status: 1,
+                    status: 200,
                     msg: 'OK',
                     result
                 }
             } else {
                 response = {
-                    status: 0, 
+                    status: 422, 
                     msg: 'RequestError: Not in hex format'
                 }
             }
         } catch (e) {
             response = {
-                status: 0, 
+                status: 503, 
                 msg: `InternalError: ${e}`
             }
         } finally {

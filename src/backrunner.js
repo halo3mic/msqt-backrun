@@ -215,12 +215,12 @@ async function isValidRequest(request) {
     }
     // Skip and remove tx if sender doesnt have enough funds
     // TODO: Account for tx gas cost more accurately
-    let senderEth = await PROVIDER.getBalance(request.sender)
-    if (senderEth.lt(request.callArgs.amountIn)) {
-        console.log('Insufficient funds')
-        removeRequestFromPool(request.txHash)
-        return false
-    }
+    // let senderEth = await PROVIDER.getBalance(request.sender)
+    // if (senderEth.lt(request.callArgs.amountIn)) {
+    //     console.log('Insufficient funds')
+    //     removeRequestFromPool(request.txHash)
+    //     return false
+    // }
     // TODO: Check if sender has enough permission and tokens for trading
 
     return true

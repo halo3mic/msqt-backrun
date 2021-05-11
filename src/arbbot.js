@@ -79,6 +79,7 @@ async function backrunPendingRequests(blockNumber) {
         let opps = getOppsForVirtualReserves(pathsWithBackrun, virtualReserves)
         // Add backruned-tx to the opportunity object
         opps = opps.map(opp => {
+            console.log(`{"action": "opportunityFound", "opp": ${opp}, "tx": ${txRequest}}`)
             opp.backrunTxs = [ txRequest.signedRequest ]
             return opp
         })
