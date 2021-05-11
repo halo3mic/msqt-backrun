@@ -197,10 +197,12 @@ describe('Logging', () => {
 			// Find opps and "handle them"
 			let backrunRequest = backrunner.parseBackrunRequest(signedTradeTxRequest)
     		let opps = arbbot.getOppsForRequest(backrunRequest)
-			let { request, response } = await arbbot.executeOpps(
+			let r = await arbbot.executeOpps(
 				opps,
 				await ethers.provider.getBlockNumber()
 			)
+			console.log(r)
+			let { request, response } = await r[0]
 			expect(request.body).to.include(signedTradeTxRequest)
 			// Confirm the request and its response were saved
 			expect(logger.getOpps().length).to.gt(0)
@@ -267,7 +269,8 @@ describe('Logging', () => {
 			// Find opps and execute them
 			let backrunRequest = backrunner.parseBackrunRequest(signedTradeTxRequest)
     		let opps = arbbot.getOppsForRequest(backrunRequest)
-			let { request, response } = await arbbot.executeOpps(opps, await ethers.provider.getBlockNumber())
+			let r = await arbbot.executeOpps(opps, await ethers.provider.getBlockNumber())
+			let { request, response } = await r[0]
 			expect(response).to.be.not.undefined
 			console.log(response)
 			// Confirm the request and its response were saved

@@ -109,23 +109,27 @@ async function backrunPendingRequests(blockNumber) {
  * @param {Integer} blockNumber 
  */
  async function executeOpps(opps, blockNumber) {
+    // Sort opps by net profitability
     opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
-    // Execute only the best opportunity found 
-    // TODO: In the future handle more opportunities at once
-    opps = [ opps[0] ]
-    let submitTimestamp = Date.now()
-    let r = await txManager.executeBundleForOpps(opps, blockNumber)
-    let responseTimestamp = Date.now()
-    // Log to csv
-    logger.logOpps(opps, blockNumber)
-    logger.logRelayRequest(
-        blockNumber,
-        submitTimestamp, 
-        responseTimestamp, 
-        r.request, 
-        r.response
-    )
-    return r
+    // Filter for non-overlapping swaps
+    opps = getParallelOpps(opps)
+    // To increase chances of success submit each opp in its own bundle
+    let bundleRequests = await Promise.all(opps.map(async opp => {
+        let submitTimestamp = Date.now()
+        let r = await txManager.executeBundleForOpps([ opp ], blockNumber)
+        let responseTimestamp = Date.now()
+        // Log to csv
+        logger.logOpps([ opp ], blockNumber)
+        logger.logRelayRequest(
+            blockNumber,
+            submitTimestamp, 
+            responseTimestamp, 
+            r.request, 
+            r.response
+        )
+        return r
+    }))
+    return bundleRequests
 }
 
 /**
@@ -290,26 +294,26 @@ function getPaths() {
     return PATHS
 }
 
-// TODO: Move in utils?
-// /**
-//  * Return an array of opportunities which pools won't overlap
-//  * @param {Array} opps Collection of opportunities 
-//  * @returns {Array}
-//  */
-//  function getParallelOpps(opps) {
-//     let parallelOpps = []
-//     let poolsUsed = []
-//     opps.forEach(opp => {
-//         let pathIncludesUsedPool = opp.path.pools.filter(poolId => {
-//             return poolsUsed.includes(poolId)
-//         }).length > 0
-//         if (!pathIncludesUsedPool) {
-//             poolsUsed = [...poolsUsed, ...opp.path.pools]
-//             parallelOpps.push(opp)
-//         }
-//     })
-//     return parallelOpps
-// }
+/**
+ * Return an array of opportunities which pools won't overlap
+ * The priority of the opportunities is in the order they are passed in
+ * @param {Array} opps Collection of opportunities 
+ * @returns {Array}
+ */
+ function getParallelOpps(opps) {
+    let parallelOpps = []
+    let poolsUsed = []
+    opps.forEach(opp => {
+        let pathIncludesUsedPool = opp.path.pools.filter(poolId => {
+            return poolsUsed.includes(poolId)
+        }).length > 0
+        if (!pathIncludesUsedPool) {
+            poolsUsed = [...poolsUsed, ...opp.path.pools]
+            parallelOpps.push(opp)
+        }
+    })
+    return parallelOpps
+}
 
 module.exports = {
     handleNewBackrunRequest,
