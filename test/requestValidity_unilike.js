@@ -170,51 +170,51 @@ describe('Request validity', () => {
 		expect(requestsAfter.length).to.equal(0)
 	})
 
-	it('Skip request where sender doesnt have enough balance to send it', async () => {
-		// Create transaction for uniswap trade and sign it
-		let txCallArgs = {
-			amountIn: ethers.utils.parseEther('10000'),
-			amountOut: ethers.utils.parseUnits('600000'),
-			method: 'swapExactETHForTokens',
-			tknPath: [ assets.WETH, assets.DAI ],
-			router: unilikeRouters.uniswap, 
-			deadline: parseInt(Date.now()/1e3)+300
-		}
-		let UniswapRouter = new ethers.Contract(
-			txCallArgs.router,
-			abis['uniswapRouter'] 
-		)
-		let nextNonce = await signer.getTransactionCount()
-		let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
-			txCallArgs.amountOut, 
-			txCallArgs.tknPath, 
-			signer.address,
-			txCallArgs.deadline, 
-			{ 
-				gasPrice: ZERO, 
-				value: txCallArgs.amountIn, 
-				nonce: nextNonce, 
-				gasLimit: 300000, 
-				from: signer.address
-			}
-		)
-		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
-		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
-		// Check that request was put in backrun requests pool
-		let requestsBefore = backrunner.getBackrunRequests()
-		expect(requestsBefore.length).to.equal(1)
-		// Check that sender doesnt have enough funds
-		expect(await ethers.provider.getBalance(signer.address)).to.lt(
-			txCallArgs.amountIn
-		)
-		// Perform validity check
-		let isValidRequest = await backrunner.isValidRequest(requestsBefore[0])
-		// Expect the request to be invalid as sender doesnt have enough funds
-		expect(isValidRequest).to.be.false
-		// Expect the request is  removed from the mempool
-		let requestsAfter = backrunner.getBackrunRequests()
-		expect(requestsAfter.length).to.equal(0)
-	})
+	// it('Skip request where sender doesnt have enough balance to send it', async () => {
+	// 	// Create transaction for uniswap trade and sign it
+	// 	let txCallArgs = {
+	// 		amountIn: ethers.utils.parseEther('10000'),
+	// 		amountOut: ethers.utils.parseUnits('600000'),
+	// 		method: 'swapExactETHForTokens',
+	// 		tknPath: [ assets.WETH, assets.DAI ],
+	// 		router: unilikeRouters.uniswap, 
+	// 		deadline: parseInt(Date.now()/1e3)+300
+	// 	}
+	// 	let UniswapRouter = new ethers.Contract(
+	// 		txCallArgs.router,
+	// 		abis['uniswapRouter'] 
+	// 	)
+	// 	let nextNonce = await signer.getTransactionCount()
+	// 	let tradeTxRequest = await UniswapRouter.populateTransaction[txCallArgs.method](
+	// 		txCallArgs.amountOut, 
+	// 		txCallArgs.tknPath, 
+	// 		signer.address,
+	// 		txCallArgs.deadline, 
+	// 		{ 
+	// 			gasPrice: ZERO, 
+	// 			value: txCallArgs.amountIn, 
+	// 			nonce: nextNonce, 
+	// 			gasLimit: 300000, 
+	// 			from: signer.address
+	// 		}
+	// 	)
+	// 	let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+	// 	// Handle new request
+	// 	backrunner.handleNewBackrunRequest(signedTradeTxRequest)
+	// 	// Check that request was put in backrun requests pool
+	// 	let requestsBefore = backrunner.getBackrunRequests()
+	// 	expect(requestsBefore.length).to.equal(1)
+	// 	// Check that sender doesnt have enough funds
+	// 	expect(await ethers.provider.getBalance(signer.address)).to.lt(
+	// 		txCallArgs.amountIn
+	// 	)
+	// 	// Perform validity check
+	// 	let isValidRequest = await backrunner.isValidRequest(requestsBefore[0])
+	// 	// Expect the request to be invalid as sender doesnt have enough funds
+	// 	expect(isValidRequest).to.be.false
+	// 	// Expect the request is  removed from the mempool
+	// 	let requestsAfter = backrunner.getBackrunRequests()
+	// 	expect(requestsAfter.length).to.equal(0)
+	// })
 
 })

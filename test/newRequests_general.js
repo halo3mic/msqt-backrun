@@ -125,7 +125,7 @@ describe('Handle new backrun request', () => {
 				}
 			)
 			response = await response.json()
-			expect(response.status).to.equal(1)
+			expect(response.status).to.equal(200)
 			expect(response.msg).to.equal('OK')
 			// Confirm the tx request was accepted
 			let backrunRequests = arbbot.getBackrunRequests()
@@ -171,7 +171,7 @@ describe('Handle new backrun request', () => {
 				}
 			)
 			response = await response.json()
-			expect(response.status).to.equal(1)
+			expect(response.status).to.equal(200)
 			expect(response.msg).to.equal('OK')
 			// Confirm the tx request was accepted
 			let backrunRequests = arbbot.getBackrunRequests()
@@ -187,7 +187,7 @@ describe('Handle new backrun request', () => {
 				}
 			)
 			response2 = await response2.json()
-			expect(response2.status).to.equal(1)
+			expect(response2.status).to.equal(200)
 			expect(response2.msg).to.equal('OK')
 			// Check that request is not in the local mempool anymore
 			let backrunRequests2 = arbbot.getBackrunRequests()
@@ -204,7 +204,7 @@ describe('Handle new backrun request', () => {
 				}
 			)
 			response = await response.json()
-			expect(response.status).to.equal(0)
+			expect(response.status).to.equal(422)
 			expect(response.msg).to.equal('RequestError: Not in hex format')
 		})
 	
@@ -250,7 +250,7 @@ describe('Handle new backrun request', () => {
 			console.log(`Time taken for request: ${requestRecievedTime-requestSubmissionTime} ms`)
 			response = await response.json()
 			expect(response.msg).to.equal('OK')
-			expect(response.status).to.equal(1)
+			expect(response.status).to.equal(200)
 			expect(response.result).to.have.all.keys(['ethCall', 'signature', 'senderAddress'])
 		})
 	
@@ -298,7 +298,7 @@ describe('Handle new backrun request', () => {
 			console.log(`Time taken for request: ${requestRecievedTime-requestSubmissionTime} ms`)
 			response = await response.json()
 			expect(response.msg).to.equal('OK')
-			expect(response.status).to.equal(1)
+			expect(response.status).to.equal(200)
 			expect(response.result).to.be.empty
 		})
 	
@@ -312,7 +312,7 @@ describe('Handle new backrun request', () => {
 				}
 			)
 			response = await response.json()
-			expect(response.status).to.equal(0)
+			expect(response.status).to.equal(422)
 			expect(response.msg).to.equal('RequestError: Not in hex format')
 		})
 

@@ -3,6 +3,7 @@ require('./helpers/helpers').load()
 describe('Logging', () => {
 	
 	before(async () => {
+		cleanTempLogs()
 		genNewAccount = await makeAccountGen()
 		signer = ethers.Wallet.createRandom().connect(ethers.provider)
 		botOperator = new ethers.Wallet(config.settings.network.privateKey, ethers.provider)
@@ -15,10 +16,7 @@ describe('Logging', () => {
 	})
 
 	afterEach(async () => {
-		// Clean the test logs
-		try { fs.unlinkSync(config.constants.paths.requests) } catch {} 
-		try { fs.unlinkSync(config.constants.paths.opps) } catch {} 
-		try { fs.unlinkSync(config.constants.paths.relayRequests) } catch {} 
+		cleanTempLogs()
 	})
 
 	describe('Log backrun requests', () => {
@@ -65,7 +63,7 @@ describe('Logging', () => {
 		it('Request to /submitRequest and its response should be saved locally', async () => {
 			// Submit signed tx request to the bot
 			let response = await postToBot('submitRequest', signedTradeTxRequest).then(r=>r.json())
-			expect(response.status).to.equal(1)
+			expect(response.status).to.equal(200)
 			expect(response.msg).to.equal('OK')
 			// Confirm the request and its response were saved
 			expect(logger.getBackrunRequests().length).to.equal(1)
@@ -85,12 +83,12 @@ describe('Logging', () => {
 		it('Request to /cancelRequest and its response should be saved locally', async () => {
 			// Submit signed tx request to the bot
 			let responseSubmit = await postToBot('submitRequest', signedTradeTxRequest).then(r=>r.json())
-			expect(responseSubmit.status).to.equal(1)
+			expect(responseSubmit.status).to.equal(200)
 			expect(responseSubmit.msg).to.equal('OK')
 			// Msg the bot to cancel a transaction
 			let txRequestHash = ethers.utils.keccak256(signedTradeTxRequest)
 			let responseCancel = await postToBot('cancelRequest', txRequestHash).then(r=>r.json())
-			expect(responseCancel.status).to.equal(1)
+			expect(responseCancel.status).to.equal(200)
 			expect(responseCancel.msg).to.equal('OK')
 			// Confirm the request and its response were saved
 			expect(logger.getBackrunRequests().length).to.equal(2)  // Submit the request & Cancel the request
@@ -110,7 +108,7 @@ describe('Logging', () => {
 		it('Request to /backrunRequets and its response should be saved locally', async () => {
 			// Submit signed tx request to the bot
 			let response = await postToBot('backrunRequest', signedTradeTxRequest).then(r=>r.json())
-			expect(response.status).to.equal(1)
+			expect(response.status).to.equal(200)
 			expect(response.msg).to.equal('OK')
 			// Confirm the request and its response were saved
 			expect(logger.getBackrunRequests().length).to.equal(1)

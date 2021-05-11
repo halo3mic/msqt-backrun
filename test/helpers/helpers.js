@@ -54,6 +54,12 @@ function load() {
             }
         )
     }
+    cleanTempLogs = function () {
+        // Clean the test logs
+		try { fs.unlinkSync(config.constants.paths.requests) } catch {} 
+		try { fs.unlinkSync(config.constants.paths.opps) } catch {} 
+		try { fs.unlinkSync(config.constants.paths.relayRequests) } catch {} 
+    }
     isNumeric = function (value) {
         return /^-?\d+$/.test(value);
     }
