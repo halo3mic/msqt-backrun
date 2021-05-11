@@ -184,7 +184,10 @@ function parseBackrunRequest(rawTx) {
  * @param {String} rawTx 
  */
 function handleNewBackrunRequest(rawTx) {
-    BACKRUN_REQUESTS.push(parseBackrunRequest(rawTx))
+    let parsedRequest = parseBackrunRequest(rawTx)
+    if (parsedRequest) {
+        BACKRUN_REQUESTS.push(parsedRequest)
+    }
 }
 
 /**
