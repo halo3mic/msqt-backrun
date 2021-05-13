@@ -111,7 +111,7 @@ class RelayRequest extends Table {
             response: JSON.stringify(response)
         }
         console.log(JSON.stringify(logMsg))
-        this.rowsTemp.push(logMg)
+        this.rowsTemp.push(logMsg)
     }
 }
 
