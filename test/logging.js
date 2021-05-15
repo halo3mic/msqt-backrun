@@ -3,10 +3,10 @@ require('./helpers/helpers').load()
 describe('Logging', () => {
 	
 	before(async () => {
-		cleanTempLogs()
 		genNewAccount = await makeAccountGen()
 		signer = ethers.Wallet.createRandom().connect(ethers.provider)
 		botOperator = new ethers.Wallet(config.settings.network.privateKey, ethers.provider)
+		cleanTempLogs()
     })
 
 	beforeEach(() => {

@@ -44,9 +44,11 @@ function load() {
             params: [ address ],
           })
     }
-    postToBot = function (method, data) {
+    postToBot = function (method, data, port) {
+        let url = 'http://localhost'
+        port = port || 8888
         return fetch(
-            'http://localhost:8888/'+method, 
+            `${url}:${port}/${method}`, 
             {
                 method: 'post',
                 body:    data,

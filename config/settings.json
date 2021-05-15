@@ -12,7 +12,7 @@
         "maxRequestPoolSize": 20, 
         "maxBundleSize": 10, 
         "minProfit": "0", 
-        "tipperShareRate": "900000000000000000", 
+        "tipperShareRate": "500000000000000000", 
         "maxHops": 4, 
         "baseAsset": "T0000",
         "blacklistedTokens": [

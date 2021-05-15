@@ -34,7 +34,6 @@ function decryptUnilikeTx(txRequest) {
             return null
         }
     } catch {
-        console.log('Transaction type is not supported')
         return null
     }
     let callArgs = {
@@ -89,7 +88,7 @@ function decryptRawTx(rawTx) {
     let sender = utils.getSignerFromRawTx(rawTx)
     let txRequest = unsign(rawTx).txData
     txRequest.to = ethers.utils.getAddress(txRequest.to)
-    txRequest.nonce = parseInt(txRequest.nonce, 16)
+    txRequest.nonce = parseInt(txRequest.nonce, 16) || 0  // If nonce is zero no nonce is passed
 
     let decryptMethods = [ decryptUnilikeTx, decryptArcherswapTx ]
     for (let decryptMethod of decryptMethods) {
@@ -185,6 +184,7 @@ function parseBackrunRequest(rawTx) {
  */
 function handleNewBackrunRequest(rawTx) {
     let parsedRequest = parseBackrunRequest(rawTx)
+    console.log('New request added!')
     if (parsedRequest) {
         BACKRUN_REQUESTS.push(parsedRequest)
     }

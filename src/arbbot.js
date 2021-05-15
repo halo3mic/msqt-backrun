@@ -20,15 +20,19 @@ let PATHS
 
 /**
  * Initializes arbbbot 
+ * There is seperate provider for initial reserves so that initial reserves can be fetched with a live one which is 
+ * a lot faster
  * @param {Provider} provider 
  * @param {Signer} signer 
  * @param {BigNumber} startGasPrice Gas price bot uses before getting updates
  * @param {Array} whitelistedPaths If passed only whitelisted paths will be arbbed
+ * @param {Array} providerForInitialReserves Provider that is used to fetch all the reserves
  */
-async function init(provider, signer, startGasPrice, whitelistedPaths) {
+async function init(provider, signer, startGasPrice, whitelistedPaths, providerForInitialReserves) {
+    providerForInitialReserves = providerForInitialReserves || provider
     let _paths = instrMng.paths  // Unfiltered paths
     _paths = whitelistedPaths || instrMng.filterPathsByConfig(_paths)
-    let _reserves = await reservesManager.init(provider, _paths)
+    let _reserves = await reservesManager.init(providerForInitialReserves, _paths)
     txManager.init(provider, signer)
     _setReserves(_reserves)  // Load reserves
     _setProvider(provider)
@@ -53,7 +57,7 @@ async function init(provider, signer, startGasPrice, whitelistedPaths) {
 async function backrunPendingRequests(blockNumber) {
     // Get only valid requests
     let backrunRequests = await backrunner.getValidBackrunRequests()
-    // Get all opportunities for all requets and put them in a single array
+    // Get all opportunities for all requests
     let opps = backrunRequests.map(request => getOppsForRequest(request)).flat()
     if (opps.length>0) {
         await executeOpps(opps, blockNumber)
@@ -79,7 +83,7 @@ async function backrunPendingRequests(blockNumber) {
         let opps = getOppsForVirtualReserves(pathsWithBackrun, virtualReserves)
         // Add backruned-tx to the opportunity object
         opps = opps.map(opp => {
-            console.log(`{"action": "opportunityFound", "opp": ${opp}, "tx": ${txRequest}}`)
+            console.log(`{"action": "opportunityFound", "opp": ${JSON.stringify(opp)}, "tx": ${JSON.stringify(txRequest)}}`)
             opp.backrunTxs = [ txRequest.signedRequest ]
             return opp
         })

@@ -8,14 +8,17 @@ const logger = require('./logger')
 const utils = require('./utils')
 
 let BLOCK_HEIGHT
+let PROVIDER
 let POOLS  // Addresses for pools that are used by valid paths
 let requestListener
 
-async function init() {
+async function init(_provider, whitelistedPaths, providerForInitialReserves) {
+    providerForInitialReserves = providerForInitialReserves || provider
+    PROVIDER = _provider || provider
     console.log('Initializing')
     let startGasPrice = await utils.fetchGasPrice(config.settings.gas.gasSpeed)
-    await arbbot.init(provider, signer, startGasPrice)
-    BLOCK_HEIGHT = await provider.getBlockNumber()
+    await arbbot.init(PROVIDER, signer, startGasPrice, whitelistedPaths, providerForInitialReserves)
+    BLOCK_HEIGHT = await PROVIDER.getBlockNumber()
     POOLS = instrMng.getPoolsForPaths(arbbot.getPaths()).map(p => p.address)
 }
 
@@ -30,11 +33,11 @@ function startListeners() {
  */
 function startListeningForBlocks() {
     const filter = { topics: [ config.constants.uniswapSyncTopic ] }
-    provider.on('block', async (blockNumber) => {
+    PROVIDER.on('block', async (blockNumber) => {
         if (blockNumber > BLOCK_HEIGHT) {
             BLOCK_HEIGHT = blockNumber
             console.log(`{ "action": "blockReceived", "currentBlock": "${blockNumber}" }`)
-            let logs = await provider.getLogs(filter)
+            let logs = await PROVIDER.getLogs(filter)
             let changedPools = []
             logs.forEach(l => {
                 if (POOLS.includes(l.address)) {
@@ -204,8 +207,8 @@ function stopRequestUpdates() {
     }
 }
 
-async function main() {
-    await init()
+async function main(_provider) {
+    await init(_provider)
     startListeners()
 }
 
