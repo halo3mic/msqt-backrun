@@ -55,7 +55,7 @@ describe('Request validity', () => {
 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
 		let txHash = ethers.utils.keccak256(signedTradeTxRequest)
 		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest)
 		// Mine transaction
 		let txReceipt = await signer.sendTransaction(tradeTxRequest).then(
 			async txRequest => txRequest.wait()
@@ -107,19 +107,12 @@ describe('Request validity', () => {
 		)
 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
 		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
-		// Check that request was put in backrun requests pool
-		let requestsBefore = backrunner.getBackrunRequests()
-		expect(requestsBefore.length).to.equal(1)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest)
 		// Check that current time is past deadline or equal to it
 		expect(txCallArgs.deadline).lte(Date.now())
-		// Perform validity check
-		let isValidRequest = await backrunner.isValidRequest(requestsBefore[0])
-		// Expect the request to be invalid as it is past deadline
-		expect(isValidRequest).to.be.false
-		// Expect the request to be removed from the pool as it is past deadline
-		let requestsAfter = backrunner.getBackrunRequests()
-		expect(requestsAfter.length).to.equal(0)
+		// Check that request was not put in backrun requests pool
+		let requests = backrunner.getBackrunRequests()
+		expect(requests.length).to.equal(0)
 	})
 
 	it('Remove request that has lower nonce than the sender', async () => {
@@ -152,7 +145,7 @@ describe('Request validity', () => {
 		)
 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
 		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest)
 		// Check that request was put in backrun requests pool
 		let requestsBefore = backrunner.getBackrunRequests()
 		expect(requestsBefore.length).to.equal(1)

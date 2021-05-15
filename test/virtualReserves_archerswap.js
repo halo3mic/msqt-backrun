@@ -61,7 +61,7 @@ describe('Virtual reserves', () => {
 		)
 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
 		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest)
 		// Check that request was put in backrun requests pool
 		let [ backrunRequest ] = backrunner.getBackrunRequests()
 		let { callArgs } = backrunRequest
@@ -122,7 +122,7 @@ describe('Virtual reserves', () => {
 		)
 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
 		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest)
 		// Check that request was put in backrun requests pool
 		let [ backrunRequest ] = backrunner.getBackrunRequests()
 		let { callArgs } = backrunRequest
@@ -193,7 +193,7 @@ describe('Virtual reserves', () => {
 		)
 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
 		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest)
 		// Check that request was put in backrun requests pool
 		let backrunRequests = backrunner.getBackrunRequests()
 		expect(backrunRequests.length).to.equal(1)
@@ -268,7 +268,7 @@ describe('Virtual reserves', () => {
 		)
 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
 		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest)
 		// Check that request was put in backrun requests pool
 		let backrunRequests = backrunner.getBackrunRequests()
 		expect(backrunRequests.length).to.equal(1)
@@ -336,7 +336,7 @@ describe('Virtual reserves', () => {
 		)
 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
 		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest)
 		// Check that request was put in backrun requests pool
 		let backrunRequests = backrunner.getBackrunRequests()
 		expect(backrunRequests.length).to.equal(1)
@@ -418,7 +418,7 @@ describe('Virtual reserves', () => {
 		)
 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
 		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest)
 		// Check that request was put in backrun requests pool
 		let backrunRequests = backrunner.getBackrunRequests()
 		expect(backrunRequests.length).to.equal(1)
@@ -489,7 +489,7 @@ describe('Virtual reserves', () => {
 		)
 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
 		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest)
 		// Check that request was put in backrun requests pool
 		let backrunRequests = backrunner.getBackrunRequests()
 		expect(backrunRequests.length).to.equal(1)
@@ -558,7 +558,7 @@ describe('Virtual reserves', () => {
 		)
 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
 		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest)
 		// Check that request was put in backrun requests pool
 		let backrunRequests = backrunner.getBackrunRequests()
 		expect(backrunRequests.length).to.equal(1)
@@ -584,6 +584,7 @@ describe('Virtual reserves', () => {
 			config.constants.routers.archerswap,
 			abis['archerswapRouter'] 
 		)
+		let nextNonce = await signer.getTransactionCount()
 		let tradeTxRequest1 = await archerswapRouter.populateTransaction['swapExactETHForTokensWithTipAmount'](
 			unilikeRouters.uniswap,
 			[
@@ -594,7 +595,7 @@ describe('Virtual reserves', () => {
 				parseInt(Date.now()/1e3)+3000, 
 			],
 			tipAmount, 
-			{ value: amountIn.add(tipAmount) }
+			{ value: amountIn.add(tipAmount), nonce: nextNonce }
 		)
 		// Sushiswap trade
 		amountIn = ethers.utils.parseUnits('2000')
@@ -608,13 +609,13 @@ describe('Virtual reserves', () => {
 				parseInt(Date.now()/1e3)+3000, 
 			],
 			tipAmount, 
-			{ value: amountIn.add(tipAmount) }
+			{ value: amountIn.add(tipAmount), nonce: nextNonce+1 }
 		)
 		let signedTradeTxRequest1 = await signer.signTransaction(tradeTxRequest1)
 		let signedTradeTxRequest2 = await signer.signTransaction(tradeTxRequest2)
 		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest1)
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest2)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest1)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest2)
 		// Check that request was put in backrun requests pool
 		let backrunRequests = backrunner.getBackrunRequests()
 		expect(backrunRequests.length).to.equal(2)

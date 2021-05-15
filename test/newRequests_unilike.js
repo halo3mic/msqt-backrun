@@ -116,7 +116,7 @@ describe('Handle new backrun request', () => {
 			}
 		)
 		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest)
 		let backrunRequests = backrunner.getBackrunRequests()
 		expect(backrunRequests.length).to.equal(1)
 		let { callArgs, txRequest, sender } = backrunRequests[0]

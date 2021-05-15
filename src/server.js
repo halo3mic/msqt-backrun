@@ -94,7 +94,7 @@ async function startRequestUpdates() {
         let response
         try {
             if (utils.isHex(request)) {
-                arbbot.handleNewBackrunRequest(request)
+                await arbbot.handleNewBackrunRequest(request)
                 response = {
                     status: 200, 
                     msg: 'OK'
