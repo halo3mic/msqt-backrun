@@ -102,6 +102,10 @@ function load() {
     }
     // Actions
     [ it, describe ]  = modifyColors(it, describe)
+    // Dont overwrite the default logs
+    config.constants.paths.requests = __dirname + '/../logs/.test.requests.csv'
+    config.constants.paths.relayRequests = __dirname + '/../logs/.test.relayRequests.csv'
+    config.constants.paths.opps = __dirname + '/../logs/.test.opps.csv'
 }
 
 

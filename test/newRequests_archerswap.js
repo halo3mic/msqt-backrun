@@ -303,11 +303,7 @@ describe('Handle new backrun request', () => {
 		backrunner.handleNewBackrunRequest(signedRequest2)
 		// Give one try for this tx request - should find opportunity
 		await arbbot.backrunPendingRequests(0)
-		let [ backrunRequest1, backrunRequest2 ]  = backrunner.getBackrunRequests()
-
-		// The tx request should now have two and one try respectively
-		expect(backrunRequest1.tries).to.equal(2)
-		expect(backrunRequest2.tries).to.equal(1)
+		expect(backrunner.getBackrunRequests().length).to.equal(2)
 
 		// Submit another tx request that above the threshold forcing the bot to toss one request
 		// First limit the pool to only two requests
