@@ -81,13 +81,15 @@ async function backrunPendingRequests(blockNumber) {
     )
     if (amountOut.gte(txRequest.callArgs.amountOutMin)) {
         let opps = getOppsForVirtualReserves(pathsWithBackrun, virtualReserves)
-        // Add backruned-tx to the opportunity object
-        opps = opps.map(opp => {
-            console.log(`{"action": "opportunityFound", "opp": ${JSON.stringify(opp)}, "tx": ${JSON.stringify(txRequest)}}`)
-            opp.backrunTxs = [ txRequest.signedRequest ]
-            return opp
-        })
-        return opps
+        if (opps.length>0) {
+            // Add backruned-tx to the opportunity object
+            opps = opps.map(opp => {
+                console.log(`{"action": "opportunityFound", "opp": ${JSON.stringify(opp)}, "tx": ${JSON.stringify(txRequest)}}`)
+                opp.backrunTxs = [ txRequest.signedRequest ]
+                return opp
+            })
+            return opps
+        }
     }
     return []
 }
@@ -330,6 +332,7 @@ module.exports = {
     init, 
     // Test visibility:
     getOppsForVirtualReserves,
+    backrunPendingRequests,
     getBackrunRequests,
     getOppsForRequest,
     getReservePath, 

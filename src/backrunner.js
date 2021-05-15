@@ -183,10 +183,15 @@ function parseBackrunRequest(rawTx) {
  * @param {String} rawTx 
  */
 function handleNewBackrunRequest(rawTx) {
+    // If pool limit is reached remove some requests based on number of tries
+    let spaceLeft = config.settings.maxRequestPoolSize - BACKRUN_REQUESTS.length
+    if (spaceLeft<1) {
+        removeRequestsFromPool(1)
+    }
     let parsedRequest = parseBackrunRequest(rawTx)
-    console.log('New request added!')
     if (parsedRequest) {
         BACKRUN_REQUESTS.push(parsedRequest)
+        console.log('New request added!')
     }
 }
 
@@ -216,15 +221,6 @@ async function isValidRequest(request) {
         removeRequestFromPool(request.txHash)
         return false
     }
-    // Skip and remove tx if sender doesnt have enough funds
-    // TODO: Account for tx gas cost more accurately
-    // let senderEth = await PROVIDER.getBalance(request.sender)
-    // if (senderEth.lt(request.callArgs.amountIn)) {
-    //     console.log('Insufficient funds')
-    //     removeRequestFromPool(request.txHash)
-    //     return false
-    // }
-    // TODO: Check if sender has enough permission and tokens for trading
 
     return true
 }
@@ -253,9 +249,8 @@ function getVirtualReserves(reserves, callArgs) {
 }
 
 function removeRequestsFromPool(num) {
-    BACKRUN_REQUESTS = BACKRUN_REQUESTS.sort(
-        (a,b) => a.recvTimestamp-b.recvTimestamp
-    ).slice(0, num)
+    // Remove the ones added first 
+    BACKRUN_REQUESTS = BACKRUN_REQUESTS.slice(num, BACKRUN_REQUESTS.length)
 }
 
 function getBackrunRequests() {
