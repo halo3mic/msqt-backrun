@@ -11,7 +11,6 @@ function load() {
     arbbot = require('../../src/arbbot')
     config = require('../../src/config')
     utils = require('../../src/utils')
-    require('./globalTestConfig')
     let addresses = require('./addresses.json') 
     assets = addresses.assets
     unilikeRouters = addresses.unilikeRouters
