@@ -46,7 +46,7 @@ describe('Execution', () => {
 		)
 		let signedTradeTxRequest1 = await signer.signTransaction(tradeTxRequest1)
 		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest1)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest1)
 		// Check that request was put in backrun requests pool
 		let backrunRequests = backrunner.getBackrunRequests()
 		expect(backrunRequests.length).to.equal(1)

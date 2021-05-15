@@ -182,7 +182,7 @@ function parseBackrunRequest(rawTx) {
  * Add decrypted and enriched signed transction to the local mempool
  * @param {String} rawTx 
  */
-function handleNewBackrunRequest(rawTx) {
+async function handleNewBackrunRequest(rawTx) {
     // If pool limit is reached remove some requests based on number of tries
     let spaceLeft = config.settings.maxRequestPoolSize - BACKRUN_REQUESTS.length
     if (spaceLeft<1) {
@@ -190,8 +190,11 @@ function handleNewBackrunRequest(rawTx) {
     }
     let parsedRequest = parseBackrunRequest(rawTx)
     if (parsedRequest) {
-        BACKRUN_REQUESTS.push(parsedRequest)
-        console.log('New request added!')
+        let isValid = await isValidRequest(parsedRequest)
+        if (isValid) {
+            BACKRUN_REQUESTS.push(parsedRequest)
+            console.log('New request added!')
+        }
     }
 }
 
