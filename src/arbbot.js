@@ -58,18 +58,18 @@ async function backrunPendingRequests(blockNumber) {
     // Get only valid requests
     let backrunRequests = await backrunner.getValidBackrunRequests()
     // Get all opportunities for all requests
-    let opps = backrunRequests.map(request => getOppsForRequest(request)).flat()
+    let opps = backrunRequests.map(request => getOppForRequest(request)).filter(e=>e)
     if (opps.length>0) {
         await executeOpps(opps, blockNumber)
     }
 }
 
 /**
- * Return opportunities that arise if request is executed
+ * Return most profitable opportunity that arise if request is executed
  * @param {Object} txRequest 
- * @returns {Array}
+ * @returns {Object}
  */
- function getOppsForRequest(txRequest) {
+ function getOppForRequest(txRequest) {
     // Filter only for paths with pools involved in backrun tx
     let pathsWithBackrun = instrMng.filterPathsByPools(
         getPaths(), 
@@ -82,16 +82,16 @@ async function backrunPendingRequests(blockNumber) {
     if (amountOut.gte(txRequest.callArgs.amountOutMin)) {
         let opps = getOppsForVirtualReserves(pathsWithBackrun, virtualReserves)
         if (opps.length>0) {
+            // Sort opps and pick the one with best net profit
+            opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
             // Add backruned-tx to the opportunity object
-            opps = opps.map(opp => {
-                console.log(`{"action": "opportunityFound", "opp": ${JSON.stringify(opp)}, "tx": ${JSON.stringify(txRequest)}}`)
-                opp.backrunTxs = [ txRequest.signedRequest ]
-                return opp
-            })
-            return opps
+            let [ opp ] = opps  // Pick the best one
+            console.log(`{"action": "opportunityFound", "opp": ${JSON.stringify(opp)}, "tx": ${JSON.stringify(txRequest)}}`)
+            opp.backrunTxs = [ txRequest.signedRequest ]
+            return opp
         }
     }
-    return []
+    return null
 }
 
 /**
@@ -125,7 +125,6 @@ async function backrunPendingRequests(blockNumber) {
         let r = await txManager.executeBundleForOpps([ opp ], blockNumber)
         let responseTimestamp = Date.now()
         // Log to csv
-        logger.logOpps([ opp ], blockNumber)
         logger.logRelayRequest(
             blockNumber,
             submitTimestamp, 
@@ -135,6 +134,7 @@ async function backrunPendingRequests(blockNumber) {
         )
         return r
     }))
+    logger.logOpps(opps, blockNumber)
     return bundleRequests
 }
 
@@ -197,18 +197,14 @@ async function backrunPendingRequests(blockNumber) {
  */
 async function backrunRawRequest(rawTxRequest, blockNumber) {
     let request = backrunner.parseBackrunRequest(rawTxRequest)
-    let opps = getOppsForRequest(request)
-    if (opps.length>0) {
-        opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
-        // Get bundles only for the best opportunity found 
-        // TODO: In the future handle more opportunities at once
-        let bundle = await txManager.oppsToBundle([ opps[0] ], blockNumber)
+    let opp = getOppForRequest(request)
+    if (opp) {
+        let bundle = await txManager.oppsToBundle([ opp ], blockNumber)
         let archerApiParams = await txManager.getArcherSendBundleParams(
             bundle, 
             blockNumber+1
         )
-        console.log(`Logging ${opps.length} opps`)
-        logger.logOpps(opps, blockNumber)  // Doesnt wait for it
+        logger.logOpps([opp], blockNumber)  // Doesnt wait for it
         return archerApiParams
     } else {
         console.log('No opportunities found')
@@ -334,7 +330,7 @@ module.exports = {
     getOppsForVirtualReserves,
     backrunPendingRequests,
     getBackrunRequests,
-    getOppsForRequest,
+    getOppForRequest,
     getReservePath, 
     updateGasPrice,
     updateBotBal,

@@ -196,9 +196,9 @@ describe('Logging', () => {
 		it('All opportunities founds with `executeOpps` should be saved to csv', async () => {
 			// Find opps and "handle them"
 			let backrunRequest = backrunner.parseBackrunRequest(signedTradeTxRequest)
-    		let opps = arbbot.getOppsForRequest(backrunRequest)
+    		let opp = arbbot.getOppForRequest(backrunRequest)
 			let r = await arbbot.executeOpps(
-				opps,
+				[ opp ],
 				await ethers.provider.getBlockNumber()
 			)
 			console.log(r)
@@ -268,8 +268,8 @@ describe('Logging', () => {
 		it('Response to sending bundle to Archer relay should be saved in csv', async () => {
 			// Find opps and execute them
 			let backrunRequest = backrunner.parseBackrunRequest(signedTradeTxRequest)
-    		let opps = arbbot.getOppsForRequest(backrunRequest)
-			let r = await arbbot.executeOpps(opps, await ethers.provider.getBlockNumber())
+    		let opp = arbbot.getOppForRequest(backrunRequest)
+			let r = await arbbot.executeOpps([ opp ], await ethers.provider.getBlockNumber())
 			let { request, response } = await r[0]
 			expect(response).to.be.not.undefined
 			console.log(response)

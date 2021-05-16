@@ -45,7 +45,7 @@ describe('Execution', () => {
 	it('Relay interaction simulation with instant opportunity', async () => {
 		// Opportunity is found and mined as soon as the trade is submitted
 		// Create transaction for uniswap trade and sign it
-		let amountIn = ethers.utils.parseUnits('11')
+		let amountIn = ethers.utils.parseUnits('100')
 		let tipAmount = ethers.utils.parseUnits('0.0001')
 		let archerswapRouter = new ethers.Contract(
 			config.constants.routers.archerswap,
@@ -255,7 +255,7 @@ describe('Execution', () => {
 			ethers.utils.parseUnits('20', 'gwei'), 
 			pathsToCheck
 		)
-		let opps = backrunRequests.map(arbbot.getOppsForRequest).flat()
+		let opps = backrunRequests.map(arbbot.getOppForRequest)
 		expect(opps.length).to.above(0)
 		opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
 		let dispatcherTx = await txMng.formDispatcherTx(
