@@ -86,7 +86,6 @@ async function startRequestUpdates() {
             next()
         })
     })
-    // TODO: Make a helper function for the post requests
     app.post("/submitRequest", async (req, res) => {
         let request = req.body
         let recvBlockHeight = BLOCK_HEIGHT  // Block height at which request was recieved

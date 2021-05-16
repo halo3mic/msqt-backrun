@@ -1,5 +1,3 @@
-// TODO: Update dispatcher balance multiple times
-
 const ethers = require('ethers')
 
 const reservesManager = require('./reservesManager')
@@ -210,27 +208,6 @@ async function backrunRawRequest(rawTxRequest, blockNumber) {
         utils.debug('No opportunities found')
         return {}
     }
-}
-
-// TODO: Add to utils?
-/**
- * Log opportunity details and tx status to console
- * @param {Object} opp - Parameters describing opportunity
- * @param {Object} txReceipt - Transaction receipt
- */
- function printOpportunityInfo(opp) {
-    let gasCostFormatted = ethers.utils.formatUnits(opp.grossProfit.sub(opp.netProfit))
-    let inputAmountFormatted = ethers.utils.formatUnits(opp.swapAmounts[0])
-    let grossProfitFormatted = ethers.utils.formatUnits(opp.grossProfit)
-    let netProfitFormatted = ethers.utils.formatUnits(opp.netProfit)
-    console.log('_'.repeat(50))
-    console.log(`${opp.blockNumber} | ${Date.now()} | 🕵️‍♂️ ARB AVAILABLE`)
-    console.log('Path: ', opp.path.symbol)
-    console.log(`Input amount: ${inputAmountFormatted}`)
-    console.log(`Gross profit: ${grossProfitFormatted}`)
-    console.log(`Net profit: ${netProfitFormatted}`)
-    console.log(`Gas cost: ${gasCostFormatted}`)
-    console.log('^'.repeat(50))
 }
 
 /**

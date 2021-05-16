@@ -445,7 +445,6 @@ describe('Virtual reserves', () => {
 		let newReserves = await reservesMng.fetchReserves(poolAffected).then(
 			r => Object.fromEntries([r])
 		)
-		// TODO: Instead of negation calulate expected reserves based on the tip pct
 		expect(newReserves['P0009']['T0000']).to.not.equal(
 			virtualReserves['P0009']['T0000']
 		)

@@ -255,9 +255,6 @@ describe('Handle new backrun request', () => {
 		})
 	
 		it('Signed transaction request to /backrunRequest should return empty object if opps are not found for request', async () => {
-			// ! Could fail if there actually is opportunity for pools trade goes through without backrunning
-			// TODO: Prevent above
-			// Make request and sign it
 			let txCallArgs = {
 				amountIn: ethers.utils.parseEther('0.001'),
 				amountOut: ZERO,
