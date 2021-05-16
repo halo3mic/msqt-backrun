@@ -25,7 +25,6 @@ async function executeBundleForOpps(opps, blockNumber) {
     if (bundle.length>0) {
         try {
             if (process.argv.includes('--call')) {
-                console.log('Calling bundle...')
                 return callBundles(bundle, blockNumber+1)
             } else {
                 return sendBundles(bundle, blockNumber+1)
@@ -67,7 +66,7 @@ async function oppsToBundle(opps, blockNumber) {
  * @returns {Object}
  */
 async function sendBundles(bundle, targetBlock) {
-    console.log(`{"action": "submittingOEBundle", "bundle": ${bundle}, "targetBlock": "${targetBlock}"}`)
+    utils.debug(`{"action": "submittingOEBundle", "bundle": ${bundle}, "targetBlock": "${targetBlock}"}`)
     let archerApiParams = await getArcherSendBundleParams(bundle, targetBlock)
     let response = await utils.submitBundleToArcher(archerApiParams)
     return response

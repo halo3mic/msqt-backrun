@@ -86,7 +86,7 @@ async function backrunPendingRequests(blockNumber) {
             opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
             // Add backruned-tx to the opportunity object
             let [ opp ] = opps  // Pick the best one
-            console.log(`{"action": "opportunityFound", "opp": ${JSON.stringify(opp)}, "tx": ${JSON.stringify(txRequest)}}`)
+            utils.debug(`{"action": "opportunityFound", "opp": ${JSON.stringify(opp)}, "tx": ${JSON.stringify(txRequest)}}`)
             opp.backrunTxs = [ txRequest.signedRequest ]
             return opp
         }
@@ -207,7 +207,7 @@ async function backrunRawRequest(rawTxRequest, blockNumber) {
         logger.logOpps([opp], blockNumber)  // Doesnt wait for it
         return archerApiParams
     } else {
-        console.log('No opportunities found')
+        utils.debug('No opportunities found')
         return {}
     }
 }

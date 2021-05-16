@@ -201,12 +201,12 @@ describe('Logging', () => {
 				[ opp ],
 				await ethers.provider.getBlockNumber()
 			)
-			console.log(r)
 			let { request, response } = await r[0]
 			expect(request.body).to.include(signedTradeTxRequest)
 			// Confirm the request and its response were saved
-			expect(logger.getOpps().length).to.gt(0)
+			expect(logger.getOpps().length).to.equal(1)
 			await logger.flush()  // Flush data from memory to disk
+			await utils.sleep(100)
             let savedOpps = await csv().fromFile(config.constants.paths.opps)
 			expect(logger.getOpps().length).to.equal(0)  // Make sure temp memory is cleared
 			// Expected response 
@@ -272,7 +272,6 @@ describe('Logging', () => {
 			let r = await arbbot.executeOpps([ opp ], await ethers.provider.getBlockNumber())
 			let { request, response } = await r[0]
 			expect(response).to.be.not.undefined
-			console.log(response)
 			// Confirm the request and its response were saved
 			expect(logger.getRelayRequests().length).to.equal(1)
 			await logger.flush()  // Flush data from memory to disk

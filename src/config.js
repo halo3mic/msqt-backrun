@@ -36,6 +36,10 @@ function getPrivateKey() {
     return pk
 }
 
+function isVerbose() {
+    return process.env.DEBUG=='1'
+}
+
 settings.arb.emptyPoolThreshold = BigNumber.from(settings.arb.emptyPoolThreshold)
 settings.arb.tipperShareRate = BigNumber.from(settings.arb.tipperShareRate)
 settings.gas.maxGasCost = BigNumber.from(settings.gas.maxGasCost)
@@ -43,6 +47,7 @@ settings.arb.minProfit = BigNumber.from(settings.arb.minProfit)
 settings.network.rpcEndpoint = process.env.HTTP_ENDPOINT
 settings.network.wsEndpoint = process.env.WS_ENDPOINT
 settings.network.privateKey = getPrivateKey()
+settings.verbose = isVerbose()
 abis = loadAllABIs()
 
 module.exports = {
