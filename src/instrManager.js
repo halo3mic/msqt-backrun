@@ -35,13 +35,15 @@ function getPoolsForPaths(_paths) {
  * Set paths that fit configuration
  */
  function filterPathsByConfig(_paths) {
-    _paths = _paths.filter(path => {
-        return (
+     _paths = _paths.filter(path => {
+         let exchangePath = path.pools.map(poolId=>_poolById[poolId].exchange)
+         return (
             path.tkns.filter(t => config.settings.arb.blacklistedTokens.includes(t)).length == 0 &&  // Exclude blacklisted tokens
             path.tkns[0] == config.settings.arb.baseAsset &&  // Paths needs to start in BASE-ASSET
             path.tkns[path.tkns.length - 1] == config.settings.arb.baseAsset &&  // Path needs to end in BASE-ASSET
             path.enabled &&  // Path needs to be enabled
-            config.settings.arb.maxHops >= path.pools.length - 1  // Filter path length
+            config.settings.arb.maxHops >= path.pools.length - 1 &&  // Filter path length
+            exchangePath.filter(dex=>!config.settings.arb.whitelistedDexes.includes(dex)).length == 0  // Filter dexes
         )
     })
     console.log('Found ', _paths.length, ' valid paths')

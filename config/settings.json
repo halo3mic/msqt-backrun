@@ -18,7 +18,13 @@
         "blacklistedTokens": [
             "T0077",
             "T0079"
-        ], 
+        ],
+        "whitelistedDexes": [
+            "uniswap", 
+            "sushiswap", 
+            "linkswap", 
+            "crypto"
+        ],
         "emptyPoolThreshold": "10000000000000000000", 
         "supportedMethods": {
             "archerswap": [
