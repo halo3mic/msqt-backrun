@@ -184,7 +184,7 @@ function parseBackrunRequest(rawTx) {
  */
 async function handleNewBackrunRequest(rawTx) {
     // If pool limit is reached remove some requests based on number of tries
-    let spaceLeft = config.settings.maxRequestPoolSize - BACKRUN_REQUESTS.length
+    let spaceLeft = config.settings.arb.maxRequestPoolSize - BACKRUN_REQUESTS.length
     if (spaceLeft<1) {
         removeRequestsFromPool(1)
     }
