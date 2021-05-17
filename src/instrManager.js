@@ -42,7 +42,7 @@ function getPoolsForPaths(_paths) {
             path.tkns[0] == config.settings.arb.baseAsset &&  // Paths needs to start in BASE-ASSET
             path.tkns[path.tkns.length - 1] == config.settings.arb.baseAsset &&  // Path needs to end in BASE-ASSET
             path.enabled &&  // Path needs to be enabled
-            config.settings.arb.maxHops >= path.pools.length - 1 &&  // Filter path length
+            config.settings.arb.maxHops >= path.pools.length &&  // Filter path length
             exchangePath.filter(dex=>!config.settings.arb.whitelistedDexes.includes(dex)).length == 0  // Filter dexes
         )
     })
