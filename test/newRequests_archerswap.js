@@ -307,7 +307,7 @@ describe('Handle new backrun request', () => {
 
 		// Submit another tx request that above the threshold forcing the bot to toss one request
 		// First limit the pool to only two requests
-		config.settings.maxRequestPoolSize = 2  
+		config.settings.arb.maxRequestPoolSize = 2  
 		// Submit the request that will overflow the mempool
 		tradeTxRequest.nonce = nextNonce + 2  // Change it so the signed request will be different
 		let signedRequest3 = await signer.signTransaction(tradeTxRequest)

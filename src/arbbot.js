@@ -57,11 +57,17 @@ async function init(provider, signer, startGasPrice, whitelistedPaths, providerF
 async function backrunPendingRequests(blockNumber) {
     // Get only valid requests
     let backrunRequests = await backrunner.getValidBackrunRequests()
-    // Get all opportunities for all requests
-    let opps = backrunRequests.map(request => getOppForRequest(request)).filter(e=>e)
-    if (opps.length>0) {
-        await executeOpps(opps, blockNumber)
-    }
+    // Evaluate and execute requests one at the time
+    let opps = []
+    let bundleRequests = await Promise.all(backrunRequests.map(request => {
+        let opp = getOppForRequest(request)
+        if (opp) {
+            opps.push(opp)
+            return executeOpp(opp, blockNumber)
+        }
+    }))
+    logger.logOpps(opps, blockNumber)
+    return bundleRequests
 }
 
 /**
@@ -110,15 +116,13 @@ async function backrunPendingRequests(blockNumber) {
 }
 
 /**
- * Execute opportunity and log it to console and to storage
+ * Execute opportunities and log it to console and to storage
  * @param {Array} opps 
  * @param {Integer} blockNumber 
  */
  async function executeOpps(opps, blockNumber) {
     // Sort opps by net profitability
     opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
-    // Filter for non-overlapping swaps
-    opps = getParallelOpps(opps)
     // To increase chances of success submit each opp in its own bundle
     let bundleRequests = await Promise.all(opps.map(async opp => {
         let submitTimestamp = Date.now()
@@ -136,6 +140,26 @@ async function backrunPendingRequests(blockNumber) {
     }))
     logger.logOpps(opps, blockNumber)
     return bundleRequests
+}
+
+/**
+ * Execute opportunity and log it to console and to storage
+ * @param {Object} opp 
+ * @returns {Object} 
+ */
+async function executeOpp(opp, blockNumber) {
+    let submitTimestamp = Date.now()
+    let r = await txManager.executeBundleForOpps([ opp ], blockNumber)
+    let responseTimestamp = Date.now()
+    // Log to csv
+    logger.logRelayRequest(
+        blockNumber,
+        submitTimestamp, 
+        responseTimestamp, 
+        r.request, 
+        r.response
+    )
+    return r
 }
 
 /**

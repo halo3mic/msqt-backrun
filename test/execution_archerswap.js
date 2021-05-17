@@ -353,7 +353,7 @@ describe('Execution', () => {
 			// Check that the number of requests in the pool increases
 			let currentRequests = arbbot.getBackrunRequests()
 			expect(currentRequests.length).to.equal(i+1)
-			// Time how long it takes to find the opp and send the bundle to relay
+			// Time how long it takes to find the opp
 			let times = 1 // Check N times and take the avg
 			let cummTime = 0
 			for (let i=0; i<times; i++) {
