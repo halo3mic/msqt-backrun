@@ -16,158 +16,158 @@ describe('Handle new backrun request', () => {
 		backrunner.cleanRequestsPool()
 	})
 
-	// it('ArcherSwap `swapExactETHForTokensWithTipAmount` signed tx should be decrypted', async () => {
-	// 	// Create transaction for uniswap trade and sign it
-	// 	let txCallArgs = {
-	// 		amountIn: ethers.utils.parseEther('100'),
-	// 		amountOut: ZERO,
-	// 		method: 'swapExactETHForTokensWithTipAmount',
-	// 		tknPath: [ assets.WETH, assets.DAI ],
-	// 		router: unilikeRouters.uniswap, 
-	// 		deadline: parseInt(Date.now()/1e3)+300, 
-	// 		tipAmount: ethers.utils.parseUnits('0.1')
-	// 	}
-	// 	let archerswapRouter = new ethers.Contract(
-	// 		config.constants.routers.archerswap,
-	// 		abis['archerswapRouter'] 
-	// 	)
-	// 	let nextNonce = await signer.getTransactionCount()
-	// 	nextNonce = nextNonce==0 ? 1 : nextNonce
-	// 	let tradeTxRequest = await archerswapRouter.populateTransaction[txCallArgs.method](
-	// 		txCallArgs.router,
-	// 		[
-	// 			txCallArgs.amountIn,
-	// 			txCallArgs.amountOut, 
-	// 			txCallArgs.tknPath, 
-	// 			signer.address,
-	// 			txCallArgs.deadline, 
-	// 		],
-	// 		txCallArgs.tipAmount,
-	// 		{ 
-	// 			gasPrice: ZERO, 
-	// 			value: txCallArgs.amountIn, 
-	// 			nonce: nextNonce, 
-	// 		}
-	// 	)
-	// 	let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
-	// 	// Decrypt signed transaction
-	// 	let response = backrunner.decryptRawTx(signedTradeTxRequest)
-	// 	expect(response.callArgs).to.not.be.undefined  // Expect reponse
-	// 	let { txRequest, callArgs, sender } = response
-	// 	// Compare passed call arguments to decrypted ones
-	// 	expect(callArgs.amountIn).to.equal(txCallArgs.amountIn)
-	// 	expect(callArgs.amountOut).to.equal(txCallArgs.amountOut)
-	// 	expect(callArgs.method).to.equal(txCallArgs.method)
-	// 	expect(callArgs.tknPath.join('')).to.equal(txCallArgs.tknPath.join(''))
-	// 	expect(callArgs.router).to.equal(txCallArgs.router)
-	// 	expect(callArgs.deadline).to.equal(txCallArgs.deadline)
-	// 	// Compare passed transaction parameters to unsigned ones
-	// 	expect(txRequest.to).to.equal(tradeTxRequest.to)
-	// 	expect(txRequest.nonce).to.equal(tradeTxRequest.nonce)
-	// 	expect(txRequest.value).to.equal(tradeTxRequest.value)
-	// 	expect(sender).to.equal(signer.address)
-	// })
+	it('ArcherSwap `swapExactETHForTokensWithTipAmount` signed tx should be decrypted', async () => {
+		// Create transaction for uniswap trade and sign it
+		let txCallArgs = {
+			amountIn: ethers.utils.parseEther('100'),
+			amountOut: ZERO,
+			method: 'swapExactETHForTokensWithTipAmount',
+			tknPath: [ assets.WETH, assets.DAI ],
+			router: unilikeRouters.uniswap, 
+			deadline: parseInt(Date.now()/1e3)+300, 
+			tipAmount: ethers.utils.parseUnits('0.1')
+		}
+		let archerswapRouter = new ethers.Contract(
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
+		)
+		let nextNonce = await signer.getTransactionCount()
+		nextNonce = nextNonce==0 ? 1 : nextNonce
+		let tradeTxRequest = await archerswapRouter.populateTransaction[txCallArgs.method](
+			txCallArgs.router,
+			[
+				txCallArgs.amountIn,
+				txCallArgs.amountOut, 
+				txCallArgs.tknPath, 
+				signer.address,
+				txCallArgs.deadline, 
+			],
+			txCallArgs.tipAmount,
+			{ 
+				gasPrice: ZERO, 
+				value: txCallArgs.amountIn, 
+				nonce: nextNonce, 
+			}
+		)
+		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+		// Decrypt signed transaction
+		let response = backrunner.decryptRawTx(signedTradeTxRequest)
+		expect(response.callArgs).to.not.be.undefined  // Expect reponse
+		let { txRequest, callArgs, sender } = response
+		// Compare passed call arguments to decrypted ones
+		expect(callArgs.amountIn).to.equal(txCallArgs.amountIn)
+		expect(callArgs.amountOut).to.equal(txCallArgs.amountOut)
+		expect(callArgs.method).to.equal(txCallArgs.method)
+		expect(callArgs.tknPath.join('')).to.equal(txCallArgs.tknPath.join(''))
+		expect(callArgs.router).to.equal(txCallArgs.router)
+		expect(callArgs.deadline).to.equal(txCallArgs.deadline)
+		// Compare passed transaction parameters to unsigned ones
+		expect(txRequest.to).to.equal(tradeTxRequest.to)
+		expect(txRequest.nonce).to.equal(tradeTxRequest.nonce)
+		expect(txRequest.value).to.equal(tradeTxRequest.value)
+		expect(sender).to.equal(signer.address)
+	})
 
-	// it('ArcherSwap `swapExactETHForTokensWithTipPct` signed tx should be decrypted', async () => {
-	// 	// Create transaction for uniswap trade and sign it
-	// 	let txCallArgs = {
-	// 		amountIn: ethers.utils.parseEther('100'),
-	// 		amountOut: ZERO,
-	// 		method: 'swapExactETHForTokensWithTipPct',
-	// 		tknPath: [ assets.WETH, assets.DAI ],
-	// 		router: unilikeRouters.uniswap, 
-	// 		deadline: parseInt(Date.now()/1e3)+300, 
-	// 		tipPct: (0.5*1000000).toString()
-	// 	}
-	// 	let archerswapRouter = new ethers.Contract(
-	// 		config.constants.routers.archerswap,
-	// 		abis['archerswapRouter'] 
-	// 	)
-	// 	let nextNonce = await signer.getTransactionCount()
-	// 	nextNonce = nextNonce==0 ? 1 : nextNonce
-	// 	let tradeTxRequest = await archerswapRouter.populateTransaction[txCallArgs.method](
-	// 		txCallArgs.router,
-	// 		[
-	// 			txCallArgs.amountIn,
-	// 			txCallArgs.amountOut, 
-	// 			txCallArgs.tknPath, 
-	// 			signer.address,
-	// 			txCallArgs.deadline, 
-	// 		],
-	// 		txCallArgs.tipPct,
-	// 		{ 
-	// 			gasPrice: ZERO, 
-	// 			value: txCallArgs.amountIn, 
-	// 			nonce: nextNonce, 
-	// 		}
-	// 	)
-	// 	let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
-	// 	// Decrypt signed transaction
-	// 	let response = backrunner.decryptRawTx(signedTradeTxRequest)
-	// 	expect(response.callArgs).to.not.be.undefined  // Expect reponse
-	// 	let { txRequest, callArgs, sender } = response
-	// 	// Compare passed call arguments to decrypted ones
-	// 	expect(callArgs.amountIn).to.equal(txCallArgs.amountIn)
-	// 	expect(callArgs.amountOut).to.equal(txCallArgs.amountOut)
-	// 	expect(callArgs.method).to.equal(txCallArgs.method)
-	// 	expect(callArgs.tknPath.join('')).to.equal(txCallArgs.tknPath.join(''))
-	// 	expect(callArgs.router).to.equal(txCallArgs.router)
-	// 	expect(callArgs.deadline).to.equal(txCallArgs.deadline)
-	// 	// Compare passed transaction parameters to unsigned ones
-	// 	expect(txRequest.to).to.equal(tradeTxRequest.to)
-	// 	expect(txRequest.nonce).to.equal(tradeTxRequest.nonce)
-	// 	expect(txRequest.value).to.equal(tradeTxRequest.value)
-	// 	expect(sender).to.equal(signer.address)
-	// })
+	it('ArcherSwap `swapExactETHForTokensWithTipPct` signed tx should be decrypted', async () => {
+		// Create transaction for uniswap trade and sign it
+		let txCallArgs = {
+			amountIn: ethers.utils.parseEther('100'),
+			amountOut: ZERO,
+			method: 'swapExactETHForTokensWithTipPct',
+			tknPath: [ assets.WETH, assets.DAI ],
+			router: unilikeRouters.uniswap, 
+			deadline: parseInt(Date.now()/1e3)+300, 
+			tipPct: (0.5*1000000).toString()
+		}
+		let archerswapRouter = new ethers.Contract(
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
+		)
+		let nextNonce = await signer.getTransactionCount()
+		nextNonce = nextNonce==0 ? 1 : nextNonce
+		let tradeTxRequest = await archerswapRouter.populateTransaction[txCallArgs.method](
+			txCallArgs.router,
+			[
+				txCallArgs.amountIn,
+				txCallArgs.amountOut, 
+				txCallArgs.tknPath, 
+				signer.address,
+				txCallArgs.deadline, 
+			],
+			txCallArgs.tipPct,
+			{ 
+				gasPrice: ZERO, 
+				value: txCallArgs.amountIn, 
+				nonce: nextNonce, 
+			}
+		)
+		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+		// Decrypt signed transaction
+		let response = backrunner.decryptRawTx(signedTradeTxRequest)
+		expect(response.callArgs).to.not.be.undefined  // Expect reponse
+		let { txRequest, callArgs, sender } = response
+		// Compare passed call arguments to decrypted ones
+		expect(callArgs.amountIn).to.equal(txCallArgs.amountIn)
+		expect(callArgs.amountOut).to.equal(txCallArgs.amountOut)
+		expect(callArgs.method).to.equal(txCallArgs.method)
+		expect(callArgs.tknPath.join('')).to.equal(txCallArgs.tknPath.join(''))
+		expect(callArgs.router).to.equal(txCallArgs.router)
+		expect(callArgs.deadline).to.equal(txCallArgs.deadline)
+		// Compare passed transaction parameters to unsigned ones
+		expect(txRequest.to).to.equal(tradeTxRequest.to)
+		expect(txRequest.nonce).to.equal(tradeTxRequest.nonce)
+		expect(txRequest.value).to.equal(tradeTxRequest.value)
+		expect(sender).to.equal(signer.address)
+	})
 
-	// it('ArcherSwap `swapExactTokensForTokensWithTipAmount` signed tx should be decrypted', async () => {
-	// 	// Create transaction for uniswap trade and sign it
-	// 	let txCallArgs = {
-	// 		amountIn: ethers.utils.parseEther('100'),
-	// 		amountOut: ZERO,
-	// 		method: 'swapExactTokensForETHAndTipAmount',
-	// 		tknPath: [ assets.WETH, assets.DAI ],
-	// 		router: unilikeRouters.uniswap, 
-	// 		deadline: parseInt(Date.now()/1e3)+300
-	// 	}
-	// 	let archerswapRouter = new ethers.Contract(
-	// 		config.constants.routers.archerswap,
-	// 		abis['archerswapRouter']
-	// 	)
-	// 	let nextNonce = await signer.getTransactionCount()
-	// 	nextNonce = nextNonce==0 ? 1 : nextNonce
-	// 	console.log('Forming tx request')
-	// 	let tradeTxRequest = await archerswapRouter.populateTransaction[txCallArgs.method](
-	// 		txCallArgs.router,
-	// 		[
-	// 			txCallArgs.amountIn,
-	// 			txCallArgs.amountOut, 
-	// 			txCallArgs.tknPath, 
-	// 			signer.address,
-	// 			txCallArgs.deadline, 
-	// 		],
-	// 		{ 
-	// 			gasPrice: ZERO, 
-	// 			nonce: nextNonce,
-	// 		}
-	// 	)
-	// 	let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
-	// 	// Decrypt signed transaction
-	// 	let response = backrunner.decryptRawTx(signedTradeTxRequest)
-	// 	expect(response.callArgs).to.not.be.undefined  // Expect reponse
-	// 	let { txRequest, callArgs, sender } = response
-	// 	// Compare passed call arguments to decrypted ones
-	// 	expect(callArgs.amountIn).to.equal(txCallArgs.amountIn)
-	// 	expect(callArgs.amountOut).to.equal(txCallArgs.amountOut)
-	// 	expect(callArgs.method).to.equal(txCallArgs.method)
-	// 	expect(callArgs.tknPath.join('')).to.equal(txCallArgs.tknPath.join(''))
-	// 	expect(callArgs.router).to.equal(txCallArgs.router)
-	// 	expect(callArgs.deadline).to.equal(txCallArgs.deadline)
-	// 	// Compare passed transaction parameters to unsigned ones
-	// 	expect(txRequest.to).to.equal(tradeTxRequest.to)
-	// 	expect(txRequest.nonce).to.equal(tradeTxRequest.nonce)
-	// 	expect(sender).to.equal(signer.address)
-	// })
+	it('ArcherSwap `swapExactTokensForTokensWithTipAmount` signed tx should be decrypted', async () => {
+		// Create transaction for uniswap trade and sign it
+		let txCallArgs = {
+			amountIn: ethers.utils.parseEther('100'),
+			amountOut: ZERO,
+			method: 'swapExactTokensForETHAndTipAmount',
+			tknPath: [ assets.WETH, assets.DAI ],
+			router: unilikeRouters.uniswap, 
+			deadline: parseInt(Date.now()/1e3)+300
+		}
+		let archerswapRouter = new ethers.Contract(
+			config.constants.routers.archerswap,
+			abis['archerswapRouter']
+		)
+		let nextNonce = await signer.getTransactionCount()
+		nextNonce = nextNonce==0 ? 1 : nextNonce
+		console.log('Forming tx request')
+		let tradeTxRequest = await archerswapRouter.populateTransaction[txCallArgs.method](
+			txCallArgs.router,
+			[
+				txCallArgs.amountIn,
+				txCallArgs.amountOut, 
+				txCallArgs.tknPath, 
+				signer.address,
+				txCallArgs.deadline, 
+			],
+			{ 
+				gasPrice: ZERO, 
+				nonce: nextNonce,
+			}
+		)
+		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
+		// Decrypt signed transaction
+		let response = backrunner.decryptRawTx(signedTradeTxRequest)
+		expect(response.callArgs).to.not.be.undefined  // Expect reponse
+		let { txRequest, callArgs, sender } = response
+		// Compare passed call arguments to decrypted ones
+		expect(callArgs.amountIn).to.equal(txCallArgs.amountIn)
+		expect(callArgs.amountOut).to.equal(txCallArgs.amountOut)
+		expect(callArgs.method).to.equal(txCallArgs.method)
+		expect(callArgs.tknPath.join('')).to.equal(txCallArgs.tknPath.join(''))
+		expect(callArgs.router).to.equal(txCallArgs.router)
+		expect(callArgs.deadline).to.equal(txCallArgs.deadline)
+		// Compare passed transaction parameters to unsigned ones
+		expect(txRequest.to).to.equal(tradeTxRequest.to)
+		expect(txRequest.nonce).to.equal(tradeTxRequest.nonce)
+		expect(sender).to.equal(signer.address)
+	})
 
 	it('`decryptUnilikeTx` should return null if tx type is not supported (no data)', async () => {
 		let tx = {

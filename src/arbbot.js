@@ -81,7 +81,7 @@ async function backrunPendingRequests(blockNumber) {
         getPaths(), 
         txRequest.callArgs.poolIds
     )
-    let { virtualReserves, amountOut} = backrunner.getVirtualReserves(
+    let { virtualReserves, amountOut } = backrunner.getVirtualReserves(
         RESERVES, 
         txRequest.callArgs
     )
