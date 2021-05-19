@@ -5778,5 +5778,413 @@
         "symbol": "uftweth_uniswap",
         "exchange": "uniswap",
         "id": "P00365"
+    },
+    {
+        "address": "0x680A025Da7b1be2c204D7745e809919bCE074026",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0007",
+                "weight": 0.5
+            },
+            {
+                "id": "T0022",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "sushiusdt_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00366"
+    },
+    {
+        "address": "0xBa87dC891945dbB3CAeEaF822DE208D7eA89B298",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0007",
+                "weight": 0.5
+            },
+            {
+                "id": "T0003",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "sushiusdc_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00367"
+    },
+    {
+        "address": "0x28bfCF4385C8D32566D8A89A64B7C1e079cB81E6",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0082",
+                "weight": 0.5
+            },
+            {
+                "id": "T0006",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "baodai_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00368"
+    },
+    {
+        "address": "0x3442801E0dDb9a6D06bc232D51725a658c8bFE10",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0008",
+                "weight": 0.5
+            },
+            {
+                "id": "T0082",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "yfibao_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00369"
+    },
+    {
+        "address": "0x072B999FC3D82f9ea08B8AdbB9D63a980FF2b14D",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0082",
+                "weight": 0.5
+            },
+            {
+                "id": "T0003",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "baousdc_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00370"
+    },
+    {
+        "address": "0xc599f66E20A8420894d980624671937D5D7e4eA5",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0082",
+                "weight": 0.5
+            },
+            {
+                "id": "T0007",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "baosushi_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00371"
+    },
+    {
+        "address": "0xBD68d831E04479fB8293b862c3Bb091a4dcDad3f",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0008",
+                "weight": 0.5
+            },
+            {
+                "id": "T0036",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "yfirune_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00372"
+    },
+    {
+        "address": "0xD279F1351D2828d559BC7a6b82c322c4d5665bEd",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0036",
+                "weight": 0.5
+            },
+            {
+                "id": "T0022",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "runeusdt_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00373"
+    },
+    {
+        "address": "0x72a6D269c3E16239C24d905Ca61254eC26523b2d",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0036",
+                "weight": 0.5
+            },
+            {
+                "id": "T0038",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "runealpha_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00374"
+    },
+    {
+        "address": "0xd535dbf27942551A98Cd0723552BDAf70628DbF8",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0036",
+                "weight": 0.5
+            },
+            {
+                "id": "T0010",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "runesnx_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00375"
+    },
+    {
+        "address": "0xAaF5110db6e744ff70fB339DE037B990A20bdace",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0006",
+                "weight": 0.5
+            },
+            {
+                "id": "T0003",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "daiusdc_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00376"
+    },
+    {
+        "address": "0xCd83cADa168c389FB5221e2cC961e6A56163176a",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0090",
+                "weight": 0.5
+            },
+            {
+                "id": "T0004",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "armorwbtc_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00377"
+    },
+    {
+        "address": "0xD86A120a06255Df8D4e2248aB04d4267E23aDfaA",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0003",
+                "weight": 0.5
+            },
+            {
+                "id": "T0022",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "usdcusdt_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00378"
+    },
+    {
+        "address": "0x886fdFCEA615E30f7148578ea5F496DbB29a7e19",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0027",
+                "weight": 0.5
+            },
+            {
+                "id": "T0036",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "creamrune_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00379"
+    },
+    {
+        "address": "0x3dC7722aF12100c4F12B3bA1e3c28Fd2264808ef",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0036",
+                "weight": 0.5
+            },
+            {
+                "id": "T0045",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "runeperp_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00380"
+    },
+    {
+        "address": "0x5285D4ea883dbFb753487e1881DB6457c4c227e5",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0036",
+                "weight": 0.5
+            },
+            {
+                "id": "T0023",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "runeaave_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00381"
+    },
+    {
+        "address": "0x711753E72e93ce9ff618b671FcA036a33d41007D",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0016",
+                "weight": 0.5
+            },
+            {
+                "id": "T0007",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "susdsushi_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00382"
+    },
+    {
+        "address": "0xf173A7A055340C91DBDF3083cE3BabAa7535A03c",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0008",
+                "weight": 0.5
+            },
+            {
+                "id": "T0007",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "yfisushi_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00383"
+    },
+    {
+        "address": "0x0EEB656C196E3022f6052BB2858b884817090dfE",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T00126",
+                "weight": 0.5
+            },
+            {
+                "id": "T0000",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "lonweth_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00384"
+    },
+    {
+        "address": "0x5a06bD8702F06B4F21382e8A87b1aB99a46b8768",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T0090",
+                "weight": 0.5
+            },
+            {
+                "id": "T0006",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "armordai_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00385"
+    },
+    {
+        "address": "0xBb7aB09971E56Aaf248dCc6C3DF865aF69D97372",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T00146",
+                "weight": 0.5
+            },
+            {
+                "id": "T0000",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "diaweth_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00386"
+    },
+    {
+        "address": "0xC965BC2cf23D54ccF41a7d3aF10572580E9B8078",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T00146",
+                "weight": 0.5
+            },
+            {
+                "id": "T0003",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "diausdc_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00387"
+    },
+    {
+        "address": "0x5DF2C8927F67e236C0b9e5fB2862916894fB78aD",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T00147",
+                "weight": 0.5
+            },
+            {
+                "id": "T0000",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "misweth_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00388"
+    },
+    {
+        "address": "0x066F3A3B7C8Fa077c71B9184d862ed0A4D5cF3e0",
+        "fee": 0.003,
+        "tkns": [
+            {
+                "id": "T00147",
+                "weight": 0.5
+            },
+            {
+                "id": "T0022",
+                "weight": 0.5
+            }
+        ],
+        "symbol": "misusdt_sushiswap",
+        "exchange": "sushiswap",
+        "id": "P00389"
     }
 ]
