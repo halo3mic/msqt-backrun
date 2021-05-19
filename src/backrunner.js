@@ -190,43 +190,40 @@ async function handleNewBackrunRequest(rawTx) {
     }
     let parsedRequest = parseBackrunRequest(rawTx)
     if (parsedRequest) {
-        let isValid = await isValidRequest(parsedRequest)
-        if (isValid) {
-            BACKRUN_REQUESTS.push(parsedRequest)
-            console.log('New request added!')
-        }
+        BACKRUN_REQUESTS.push(parsedRequest)
+        console.log('New request added!')
     }
 }
 
-/**
- * Check if a request fits conditions
- * @param {Object} request 
- * @returns {Boolean}
- */
-async function isValidRequest(request) {
-    // Skip and remove request if tx is past deadline
-    if (request.callArgs.deadline<=Date.now()/1e3) {
-        console.log('Tx is past deadline')
-        removeRequestFromPool(request.txHash)
-        return false
-    }
-    // Skip and remove request if tx is has lower nonce than the sender
-    let txCount = await PROVIDER.getTransactionCount(request.sender)
-    if (request.txRequest.nonce < txCount) {
-        console.log('Tx has lower nonce than the sender')
-        removeRequestFromPool(request.txHash)
-        return false
-    }
-    // Skip and remove request if tx was already mined
-    let txReceipt = await PROVIDER.getTransactionReceipt(request.txHash)
-    if (txReceipt && txReceipt.status=='1') {
-        console.log('Tx was already mined')
-        removeRequestFromPool(request.txHash)
-        return false
-    }
+// /**
+//  * Check if a request fits conditions
+//  * @param {Object} request 
+//  * @returns {Boolean}
+//  */
+// async function isValidRequest(request) {
+//     // Skip and remove request if tx is past deadline
+//     if (request.callArgs.deadline<=Date.now()/1e3) {
+//         console.log('Tx is past deadline')
+//         removeRequestFromPool(request.txHash)
+//         return false
+//     }
+//     // Skip and remove request if tx is has lower nonce than the sender
+//     let txCount = await PROVIDER.getTransactionCount(request.sender)
+//     if (request.txRequest.nonce < txCount) {
+//         console.log('Tx has lower nonce than the sender')
+//         removeRequestFromPool(request.txHash)
+//         return false
+//     }
+//     // Skip and remove request if tx was already mined
+//     let txReceipt = await PROVIDER.getTransactionReceipt(request.txHash)
+//     if (txReceipt && txReceipt.status=='1') {
+//         console.log('Tx was already mined')
+//         removeRequestFromPool(request.txHash)
+//         return false
+//     }
 
-    return true
-}
+//     return true
+// }
 
 /**
  * Calulate the reserves after trade is executed 
@@ -260,9 +257,9 @@ function getBackrunRequests() {
     return BACKRUN_REQUESTS
 }
 
-async function getValidBackrunRequests() {
-    return Promise.all(BACKRUN_REQUESTS.filter(isValidRequest))
-}
+// async function getValidBackrunRequests() {
+//     return Promise.all(BACKRUN_REQUESTS.filter(isValidRequest))
+// }
 
 function cleanRequestsPool() {
     BACKRUN_REQUESTS = []
@@ -274,7 +271,7 @@ function removeRequestFromPool(hash) {
 
 module.exports = { 
     handleNewBackrunRequest, 
-    getValidBackrunRequests,
+    // getValidBackrunRequests,
     removeRequestFromPool,
     findPoolsForTknPath,
     decryptArcherswapTx,
@@ -284,7 +281,7 @@ module.exports = {
     cleanRequestsPool,
     decryptUnilikeTx, 
     enrichCallArgs,
-    isValidRequest,
+    // isValidRequest,
     decryptRawTx,
     init 
 }

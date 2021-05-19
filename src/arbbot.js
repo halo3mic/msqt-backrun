@@ -56,7 +56,7 @@ async function init(provider, signer, startGasPrice, whitelistedPaths, providerF
 
 async function backrunPendingRequests(blockNumber) {
     // Get only valid requests
-    let backrunRequests = await backrunner.getValidBackrunRequests()
+    let backrunRequests = backrunner.getBackrunRequests()
     // Evaluate and execute requests one at the time
     let opps = []
     let bundleRequests = await Promise.all(backrunRequests.map(request => {

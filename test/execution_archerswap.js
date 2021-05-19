@@ -182,42 +182,42 @@ describe('Execution', () => {
 
 	// }).timeout(1000000)
 
-	it('Remove trade request from the pool if account passes a selfie (nonce increase)', async () => {
-		// Opportunity is found blocks after the trade was submitted
-		// Create transaction for uniswap trade and sign it
-		let amountIn = ethers.utils.parseUnits('1')
-		let tipAmount = ethers.utils.parseUnits('0.0001')
-		let archerswapRouter = new ethers.Contract(
-			config.constants.routers.archerswap,
-			abis['archerswapRouter'] 
-		)
-		let nextNonce = await signer.getTransactionCount()
-		let tradeTxRequest1 = await archerswapRouter.populateTransaction['swapExactETHForTokensWithTipAmount'](
-			unilikeRouters.sushiswap,
-			[
-				amountIn,
-				ZERO, 
-				[ assets.WETH, assets.ARCH ],
-				signer.address,
-				parseInt(Date.now()/1e3)+3000, 
-			],
-			tipAmount, 
-			{ 
-				value: amountIn.add(tipAmount), 
-				gasPrice: ZERO, 
-				gasLimit: 300000,
-				nonce: nextNonce, 
-			}
-		)
+	// it('Remove trade request from the pool if account passes a selfie (nonce increase)', async () => {
+	// 	// Opportunity is found blocks after the trade was submitted
+	// 	// Create transaction for uniswap trade and sign it
+	// 	let amountIn = ethers.utils.parseUnits('1')
+	// 	let tipAmount = ethers.utils.parseUnits('0.0001')
+	// 	let archerswapRouter = new ethers.Contract(
+	// 		config.constants.routers.archerswap,
+	// 		abis['archerswapRouter'] 
+	// 	)
+	// 	let nextNonce = await signer.getTransactionCount()
+	// 	let tradeTxRequest1 = await archerswapRouter.populateTransaction['swapExactETHForTokensWithTipAmount'](
+	// 		unilikeRouters.sushiswap,
+	// 		[
+	// 			amountIn,
+	// 			ZERO, 
+	// 			[ assets.WETH, assets.ARCH ],
+	// 			signer.address,
+	// 			parseInt(Date.now()/1e3)+3000, 
+	// 		],
+	// 		tipAmount, 
+	// 		{ 
+	// 			value: amountIn.add(tipAmount), 
+	// 			gasPrice: ZERO, 
+	// 			gasLimit: 300000,
+	// 			nonce: nextNonce, 
+	// 		}
+	// 	)
 		
-		let signedTradeTxRequest1 = await signer.signTransaction(tradeTxRequest1)
-		await arbbot.handleNewBackrunRequest(signedTradeTxRequest1)
-		// Send a selfie to increase nonce
-		await signer.sendTransaction({to: signer.address})
-		// Expect the bot to clear transaction request from the pool
-		await arbbot.handleBlockUpdate(0)
-		expect(arbbot.getBackrunRequests().length).to.equal(0)
-	}).timeout(1000000)
+	// 	let signedTradeTxRequest1 = await signer.signTransaction(tradeTxRequest1)
+	// 	await arbbot.handleNewBackrunRequest(signedTradeTxRequest1)
+	// 	// Send a selfie to increase nonce
+	// 	await signer.sendTransaction({to: signer.address})
+	// 	// Expect the bot to clear transaction request from the pool
+	// 	await arbbot.handleBlockUpdate(0)
+	// 	expect(arbbot.getBackrunRequests().length).to.equal(0)
+	// }).timeout(1000000)
 
 	it('Latency shouldnt exponentially increase with higher number of tx requests', async () => {
 		
@@ -258,8 +258,8 @@ describe('Execution', () => {
 			return signer.signTransaction(tradeTxRequest)
 		}
 
-		async function findOpps() {
-			let backrunRequests = await backrunner.getValidBackrunRequests()
+		function findOpps() {
+			let backrunRequests = backrunner.getBackrunRequests()
 			// Get all opportunities for all requests
 			return backrunRequests.map(request => arbbot.getOppForRequest(request)).filter(e=>e)
 		}
@@ -280,7 +280,7 @@ describe('Execution', () => {
 			let times = 1 // Check N times and take the avg
 			let cummTime = 0
 			for (let i=0; i<times; i++) {
-				cummTime += await timeExecution(findOpps)
+				cummTime += timeExecution(findOpps)
 			}
 			executionTimes.push(cummTime/times)
 			console.log(`Time taken for ${i+1} requests: ${cummTime/times}ms`)
