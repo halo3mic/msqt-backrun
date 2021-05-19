@@ -183,11 +183,11 @@ function parseBackrunRequest(rawTx) {
  * @param {String} rawTx 
  */
 async function handleNewBackrunRequest(rawTx) {
-    // If pool limit is reached remove some requests based on number of tries
-    let spaceLeft = config.settings.arb.maxRequestPoolSize - BACKRUN_REQUESTS.length
-    if (spaceLeft<1) {
-        removeRequestsFromPool(1)
-    }
+    // // If pool limit is reached remove some requests based on number of tries
+    // let spaceLeft = config.settings.arb.maxRequestPoolSize - BACKRUN_REQUESTS.length
+    // if (spaceLeft<1) {
+    //     removeRequestsFromPool(1)
+    // }
     let parsedRequest = parseBackrunRequest(rawTx)
     if (parsedRequest) {
         BACKRUN_REQUESTS.push(parsedRequest)
@@ -248,10 +248,10 @@ function getVirtualReserves(reserves, callArgs) {
     return { virtualReserves, amountOut }
 }
 
-function removeRequestsFromPool(num) {
-    // Remove the ones added first 
-    BACKRUN_REQUESTS = BACKRUN_REQUESTS.slice(num, BACKRUN_REQUESTS.length)
-}
+// function removeRequestsFromPool(num) {
+//     // Remove the ones added first 
+//     BACKRUN_REQUESTS = BACKRUN_REQUESTS.slice(num, BACKRUN_REQUESTS.length)
+// }
 
 function getBackrunRequests() {
     return BACKRUN_REQUESTS

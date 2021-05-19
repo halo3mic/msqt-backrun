@@ -9,7 +9,6 @@
         "gasSpeed": "rapid"
     }, 
     "arb": {
-        "maxRequestPoolSize": 20, 
         "maxBundleSize": 10, 
         "minProfit": "0", 
         "tipperShareRate": "500000000000000000", 

@@ -221,10 +221,10 @@ describe('Execution', () => {
 
 	it('Latency shouldnt exponentially increase with higher number of tx requests', async () => {
 		
-		async function timeExecution(fun, args) {
+		function timeExecution(fun, args) {
 			args = args || []
 			let t0 = Date.now()
-			await fun(...args)
+			fun(...args)
 			return Date.now() - t0
 		}
 
@@ -266,7 +266,7 @@ describe('Execution', () => {
 		
 		// Check how much does the arb-search latency increase with the number of requests
 		let executionTimes = []
-		let maxRequests = 10
+		let maxRequests = 40
 		for (let i=0; i<maxRequests; i++) {
 			let amountIn = ethers.utils.parseEther((100+i).toString())
 			let setting = [ amountIn, assets.LINK, "sushiswap" ]  // Use the same asset to decrease the variability in latency
