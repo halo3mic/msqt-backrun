@@ -62,11 +62,10 @@ async function oppsToBundle(opps, blockNumber) {
  * Return network response indicating submission success
  * @param {Array} bundle
  * @param {Number} targetBlock 
- * @param {Boolean} debugOnly 
  * @returns {Object}
  */
 async function sendBundles(bundle, targetBlock) {
-    utils.debug(`{"action": "submittingOEBundle", "bundle": ${bundle}, "targetBlock": "${targetBlock}"}`)
+    utils.verboseLog(`{"action": "submittingOEBundle", "bundle": ${bundle}, "targetBlock": "${targetBlock}"}`)
     let archerApiParams = await getArcherSendBundleParams(bundle, targetBlock)
     let response = await utils.submitBundleToArcher(archerApiParams)
     return response
@@ -77,7 +76,6 @@ async function sendBundles(bundle, targetBlock) {
  * Return network response including simulation results
  * @param {Array} bundle
  * @param {Number} targetBlock 
- * @param {Boolean} debugOnly 
  * @returns {Object}
  */
 async function callBundles(bundles, targetBlock) {

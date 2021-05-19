@@ -36,8 +36,12 @@ function getPrivateKey() {
     return pk
 }
 
+/**
+ * With vebose set to true, process state will be logged in the console
+ * @returns {boolean}
+ */
 function isVerbose() {
-    return process.env.DEBUG=='1'
+    return process.env.DEBUG!='1'
 }
 
 settings.arb.emptyPoolThreshold = BigNumber.from(settings.arb.emptyPoolThreshold)
