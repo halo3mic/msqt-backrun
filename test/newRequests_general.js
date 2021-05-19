@@ -316,6 +316,60 @@ describe('Handle new backrun request', () => {
 			expect(response.msg).to.equal('RequestError: Not in hex format')
 		})
 
+		it('Request to /estimateProfit should return integer if profitable opp is found - live', async () => {
+			let payload = {
+				amountIn: ethers.utils.parseUnits('50').toString(),
+				amountOutMin: ZERO.toString(),
+				path: [ assets.WETH, assets.ARCH ],
+				exchange: 'uniswap'
+			}
+			let requestSubmissionTime = Date.now()
+			let response = await postToBot('estimateProfit', JSON.stringify(payload), 8888).then(r => r.json())
+			let requestRecievedTime = Date.now()
+			console.log(`Time taken for request: ${requestRecievedTime-requestSubmissionTime} ms`)
+			console.log(response)
+			console.log(ethers.utils.formatUnits(response.result))
+			expect(response.msg).to.equal('OK')
+			expect(response.status).to.equal(200)
+			expect(ethers.BigNumber.from(response.result)).to.gt('0')
+		})
+
+		it('Request to /estimateProfit should return integer if profitable opp is found - for past blocks', async () => {
+			let payload = {
+				amountIn: ethers.utils.parseUnits('50').toString(),
+				amountOutMin: ZERO.toString(),
+				path: [ assets.WETH, assets.ARCH ],
+				exchange: 'uniswap', 
+				blockNumber: 12440022 
+			}
+			let requestSubmissionTime = Date.now()
+			let response = await postToBot('estimateProfit', JSON.stringify(payload), 8888).then(r => r.json())
+			let requestRecievedTime = Date.now()
+			console.log(`Time taken for request: ${requestRecievedTime-requestSubmissionTime} ms`)
+			console.log(response)
+			console.log(ethers.utils.formatUnits(response.result))
+			expect(response.msg).to.equal('OK')
+			expect(response.status).to.equal(200)
+			expect(ethers.BigNumber.from(response.result)).to.gt('0')
+		})
+
+		it('Request to /estimateProfit should return an error if no opp is found', async () => {
+			let payload = {
+				amountIn: ethers.utils.parseUnits('10').toString(),
+				amountOutMin: ZERO.toString(),
+				path: [ assets.WETH, assets.USDC ],
+				exchange: 'uniswap'
+			}
+			let requestSubmissionTime = Date.now()
+			let response = await postToBot('estimateProfit', JSON.stringify(payload), 8888).then(r => r.json())
+			let requestRecievedTime = Date.now()
+			console.log(`Time taken for request: ${requestRecievedTime-requestSubmissionTime} ms`)
+			console.log(response)
+			expect(response.msg).to.equal('InternalError: Error: No opportunity found')
+			expect(response.status).to.equal(503)
+			expect(response.result).to.be.undefined
+		})
+
 	})
 
 

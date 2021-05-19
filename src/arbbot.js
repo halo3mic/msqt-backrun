@@ -283,6 +283,7 @@ async function estimateProfitForTrade(_amountIn, _amountOutMin, tknPathAdd, exch
     let opps = getOppsForVirtualReserves(pathsWithBackrun, virtualReserves)
     // Return the gross profit for the opportunity with most net profit
     let [ bestOpp ] = opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
+    if (!bestOpp) { throw new Error('No opportunity found') }
     return bestOpp.grossProfit
 }
 
