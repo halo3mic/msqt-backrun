@@ -74,7 +74,7 @@ function getPoolsForPaths(_paths) {
 /**
  * Return only paths that include at least one of the pools
  * @param {Array} paths The paths that should be checked
- * @param {Array} updatedPools The pool addresses that have reserves changed
+ * @param {Array} pools The pool ids that paths should be filtered by
  * @returns 
  */
  function filterPathsByPools(paths, pools) {
@@ -86,6 +86,21 @@ function getPoolsForPaths(_paths) {
     })
 }
 
+/**
+ * Return only paths that include all tokens
+ * @param {Array} paths The paths that should be checked
+ * @param {Array} tokens The token ids paths should be filtered by
+ * @returns 
+ */
+function filterPathsByTokens(paths, tokens) {
+    return paths.filter(path => {
+        // Only inlude the paths using a pool that was updated 
+        return path.tkns.filter(tkn => {
+            return !tokens.includes(tkn)
+        }).length == 0
+    })
+}
+
 module.exports = {
     getPathById: id => _pathById[id], 
     getPoolById: id => _poolById[id], 
@@ -94,6 +109,7 @@ module.exports = {
     getTokenByAddress: id => _tokenByAddress[id],
     filterPathsWithEmptyPool,
     filterPathsByConfig,
+    filterPathsByTokens,
     filterPathsByPools,
     getPoolsForPaths,
     tokens,

@@ -123,7 +123,7 @@ describe('Handle new backrun request', () => {
 		// Compare passed call arguments to decrypted ones
 		expect(callArgs.amountIn).to.equal(txCallArgs.amountIn)
 		expect(callArgs.amountOut).to.equal(txCallArgs.amountOutMin)
-		expect(callArgs.tknPath.join('')).to.equal(['T0000', 'T0006'].join(''))
+		expect(callArgs.tknIds.join('')).to.equal(['T0000', 'T0006'].join(''))
 		expect(callArgs.deadline).to.equal(txCallArgs.deadline)
 		// Compare passed transaction parameters to unsigned ones
 		expect(txRequest.to).to.equal(tradeTxRequest.to)

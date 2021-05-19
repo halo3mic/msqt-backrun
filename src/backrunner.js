@@ -142,7 +142,7 @@ function enrichCallArgs(callArgs) {
     let amountIn = utils.normalizeUnits(callArgs.amountIn, tknPath[0].decimal)
     let amountOutMin = utils.normalizeUnits(callArgs.amountOut, tknPath[tknPath.length-1].decimal)
     return {
-        tknPath: tknPath.map(t=>t.id),
+        tknIds: tknPath.map(t=>t.id),
         recvTimestamp: Date.now(),
         poolAddresses: usedPools.map(p=>p.address), 
         poolIds: usedPools.map(p=>p.id), 
@@ -236,7 +236,7 @@ async function isValidRequest(request) {
  * @returns {Object}
  */
 function getVirtualReserves(reserves, callArgs) {
-    let { amountIn, tknPath, poolIds: poolPath } = callArgs
+    let { amountIn, tknIds: tknPath, poolIds: poolPath } = callArgs
     let amountOut
     let virtualReserves = {}
     for (let i=0; i<poolPath.length; i++) {
@@ -276,6 +276,7 @@ module.exports = {
     handleNewBackrunRequest, 
     getValidBackrunRequests,
     removeRequestFromPool,
+    findPoolsForTknPath,
     decryptArcherswapTx,
     parseBackrunRequest,
     getBackrunRequests,

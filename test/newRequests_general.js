@@ -34,7 +34,7 @@ describe('Handle new backrun request', () => {
 			deadline: parseInt(Date.now()/1e3)+300
 		}
 		let enrichedArgs = backrunner.enrichCallArgs(callArgs)
-		expect(enrichedArgs.tknPath.join()).to.equal(['T0000', 'T0003'].join())
+		expect(enrichedArgs.tknIds.join()).to.equal(['T0000', 'T0003'].join())
 		expect(enrichedArgs.poolAddresses.join()).to.equal([
 			'0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc'
 		].join())
@@ -53,7 +53,7 @@ describe('Handle new backrun request', () => {
 			deadline: parseInt(Date.now()/1e3)+300
 		}
 		let enrichedArgs = backrunner.enrichCallArgs(callArgs)
-		expect(enrichedArgs.tknPath.join()).to.equal(['T0000', 'T0006', 'T0003'].join())
+		expect(enrichedArgs.tknIds.join()).to.equal(['T0000', 'T0006', 'T0003'].join())
 		expect(enrichedArgs.poolAddresses.join()).to.equal([
 			'0xA478c2975Ab1Ea89e8196811F51A7B7Ade33eB11',
 			'0xAE461cA67B15dc8dc81CE7615e0320dA1A9aB8D5' 

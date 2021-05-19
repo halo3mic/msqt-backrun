@@ -28,7 +28,7 @@ let PATHS
  * @param {Array} whitelistedPaths If passed only whitelisted paths will be arbbed
  * @param {Array} providerForInitialReserves Provider that is used to fetch all the reserves
  */
-async function init(provider, signer, startGasPrice, whitelistedPaths, providerForInitialReserves) {
+async function init(provider, signer, startGasPrice, whitelistedPaths, providerForInitialReserves) {    
     providerForInitialReserves = providerForInitialReserves || provider
     let _paths = instrMng.paths  // Unfiltered paths
     _paths = whitelistedPaths || instrMng.filterPathsByConfig(_paths)
@@ -237,6 +237,56 @@ async function backrunRawRequest(rawTxRequest, blockNumber) {
 }
 
 /**
+ * Estimates and returns the profit for backrunning trade
+ * Profit is estimated for conditions(reserves) when the function is called
+ * @param {BigNumber} amountIn Amount the trade is started with 
+ * @param {BigNumber} amountOutMin Minimal amount recieved at the end of the trade 
+ * @param {Array} tknPathAdd Addresses of tokens in sequence they will be traded 
+ * @param {String} exchange Name of the exchange (needs to match a key in pool obj)
+ * @param {Integer} [blockNumber='latest'] Block for which profit will be estimated
+ * @returns {BigNumber}
+ */
+async function estimateProfitForTrade(_amountIn, _amountOutMin, tknPathAdd, exchange, blockNumber='latest') {
+    // Token address => token objects
+    let tknPath = tknPathAdd.map(tknAddress => {
+        let tkn = instrMng.getTokenByAddress(tknAddress)
+        if (!tkn) { throw new Error('Unknown token address') }
+        return tkn
+    })
+    // Normalize units
+    let amountIn = utils.normalizeUnits(_amountIn, tknPath[0].decimal)
+    let amountOutMin = utils.normalizeUnits(_amountOutMin, tknPath[tknPath.length-1].decimal)
+    // Get pools the trade uses and virtual reserves at the end of the trade
+    let usedPools = backrunner.findPoolsForTknPath(exchange, tknPath.map(t=>t.id))  // Array of pool objs
+    if (!usedPools) { throw new Error('One of the pools for token path not found') }
+    let callArgs = {
+        amountIn, 
+        tknIds: tknPath.map(t=>t.id), 
+        poolIds: usedPools.map(p=>p.id)
+    }
+    // Find paths that go through the same pool as the trade
+    let pathsWithBackrun = instrMng.filterPathsByPools(
+        getPaths(), 
+        callArgs.poolIds
+    )
+    let _reserves = blockNumber=='latest' ? RESERVES : await reservesMng.fetchPastReservesForPaths(
+        pathsWithBackrun, blockNumber
+    )
+    let { virtualReserves, amountOut } = backrunner.getVirtualReserves(_reserves, callArgs)
+    if (blockNumber!='latest') {
+        // Pass all fork reserves as virtual ones to use forked ones
+        virtualReserves = { ..._reserves, ...virtualReserves }
+    }
+    if (amountOut.lt(amountOutMin)) { throw new Error('Insufficient amount out') }
+    
+    // Estimate opportunities after the trade
+    let opps = getOppsForVirtualReserves(pathsWithBackrun, virtualReserves)
+    // Return the gross profit for the opportunity with most net profit
+    let [ bestOpp ] = opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
+    return bestOpp.grossProfit
+}
+
+/**
  * Returns ETH balance of dispatcher contract
  * @returns {BigNumber}
  */
@@ -322,6 +372,7 @@ function getPaths() {
 
 module.exports = {
     handleNewBackrunRequest,
+    estimateProfitForTrade,
     handleBlockUpdate,
     backrunRawRequest,
     updateReserves,
