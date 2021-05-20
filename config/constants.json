@@ -14,7 +14,20 @@
         "linkswap": "0xA7eCe0911FE8C60bff9e99f8fAFcDBE56e07afF1",
         "uniswap": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
         "crypto": "0xCeB90E4C17d626BE0fACd78b79c9c87d7ca181b3"
-    }, 
+    },
+    "lpSymbols": {
+        "SashimiSwap": "sashimiswap", 
+        "SushiSwap": "sushiswap", 
+        "Mooniswap": "mooniswap", 
+        "LinkSwap": "linkswap", 
+        "Polyient": "polyient",
+        "Balancer": "balancer", 
+        "SakeSwap": "sakeswap",
+        "WSwap": "whiteswap", 
+        "Uniswap": "uniswap", 
+        "CRO": "crypto"
+    },
+    "factories": {},
     "uniswapSyncTopic": "0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1",  
     "archerBundleEndpoint": "https://api.archerdao.io/v1/bundle/send",
     "paths": {

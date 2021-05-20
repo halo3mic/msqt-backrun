@@ -4,7 +4,7 @@ const config = require('../../src/config')
 const PORT = 8777
 let PROVIDER
 let inSimulation = []
-
+let LISTENER
 
 function startListening(provider) {
     PROVIDER = provider
@@ -31,10 +31,16 @@ function startListening(provider) {
         }
         res.json(response)
     })
-    let requestListener = app.listen(PORT, () => {
+    LISTENER = app.listen(PORT, () => {
         console.log(`Relay simulator running on port: ${PORT}`)
     })
 
+}
+
+function stopListening() {
+    if (LISTENER) {
+        LISTENER.close()
+    }
 }
 
 async function getBundleFromRequest(rawRequest) {
@@ -68,5 +74,6 @@ function executeRawTransaction(rawTx) {
 }
 
 module.exports = {
-    startListening
+    startListening, 
+    stopListening
 }

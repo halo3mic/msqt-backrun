@@ -9,16 +9,21 @@
         "gasSpeed": "rapid"
     }, 
     "arb": {
-        "maxRequestPoolSize": 20, 
         "maxBundleSize": 10, 
         "minProfit": "0", 
         "tipperShareRate": "500000000000000000", 
-        "maxHops": 4, 
+        "maxHops": 3, 
         "baseAsset": "T0000",
         "blacklistedTokens": [
             "T0077",
             "T0079"
-        ], 
+        ],
+        "whitelistedDexes": [
+            "uniswap", 
+            "sushiswap", 
+            "linkswap", 
+            "crypto"
+        ],
         "emptyPoolThreshold": "10000000000000000000", 
         "supportedMethods": {
             "archerswap": [

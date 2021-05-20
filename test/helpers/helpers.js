@@ -82,13 +82,12 @@ function load() {
         }
         return [ it, describe ]
     }
-    async function topUpAccountWithETH(topper, recieverAddress, amount) {
+    topUpAccountWithETH = async function (topper, recieverAddress, amount) {
         await topper.sendTransaction({
             to: recieverAddress, 
             value: amount
         })
     }
-
 	topUpAccountWithToken = async function (topper, recieverAddress, tokenAddress, amount, unilikeRouterAddress) {
         let router = unilikeRouterAddress || unilikeRouters.uniswap
         let routerContract = new ethers.Contract(router, config.ABIS['uniswapRouter'])
@@ -98,6 +97,13 @@ function load() {
             recieverAddress, 
             parseInt(Date.now()/1e3)+3000
         ).then(response => response.wait())
+    }
+    getInternalTxsForTx = (txHash) => {
+        return fetch(
+            `https://api.etherscan.io/api?module=account&action=txlistinternal&txhash=${txHash}&apikey=${process.env.ETHERSCAN_TOKEN}`
+        )
+        .then(r => r.json())
+        .then(r => r.result)
     }
     // Actions
     [ it, describe ]  = modifyColors(it, describe)

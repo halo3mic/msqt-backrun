@@ -26,7 +26,7 @@ let PATHS
  * @param {Array} whitelistedPaths If passed only whitelisted paths will be arbbed
  * @param {Array} providerForInitialReserves Provider that is used to fetch all the reserves
  */
-async function init(provider, signer, startGasPrice, whitelistedPaths, providerForInitialReserves) {
+async function init(provider, signer, startGasPrice, whitelistedPaths, providerForInitialReserves) {    
     providerForInitialReserves = providerForInitialReserves || provider
     let _paths = instrMng.paths  // Unfiltered paths
     _paths = whitelistedPaths || instrMng.filterPathsByConfig(_paths)
@@ -54,12 +54,18 @@ async function init(provider, signer, startGasPrice, whitelistedPaths, providerF
 
 async function backrunPendingRequests(blockNumber) {
     // Get only valid requests
-    let backrunRequests = await backrunner.getValidBackrunRequests()
-    // Get all opportunities for all requests
-    let opps = backrunRequests.map(request => getOppForRequest(request)).filter(e=>e)
-    if (opps.length>0) {
-        await executeOpps(opps, blockNumber)
-    }
+    let backrunRequests = backrunner.getBackrunRequests()
+    // Evaluate and execute requests one at the time
+    let opps = []
+    let bundleRequests = await Promise.all(backrunRequests.map(request => {
+        let opp = getOppForRequest(request)
+        if (opp) {
+            opps.push(opp)
+            return executeOpp(opp, blockNumber)
+        }
+    }))
+    logger.logOpps(opps, blockNumber)
+    return bundleRequests
 }
 
 /**
@@ -73,7 +79,7 @@ async function backrunPendingRequests(blockNumber) {
         getPaths(), 
         txRequest.callArgs.poolIds
     )
-    let { virtualReserves, amountOut} = backrunner.getVirtualReserves(
+    let { virtualReserves, amountOut } = backrunner.getVirtualReserves(
         RESERVES, 
         txRequest.callArgs
     )
@@ -84,7 +90,7 @@ async function backrunPendingRequests(blockNumber) {
             opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
             // Add backruned-tx to the opportunity object
             let [ opp ] = opps  // Pick the best one
-            utils.debug(`{"action": "opportunityFound", "opp": ${JSON.stringify(opp)}, "tx": ${JSON.stringify(txRequest)}}`)
+            utils.verboseLog(`{"action": "opportunityFound", "opp": ${JSON.stringify(opp)}, "tx": ${JSON.stringify(txRequest)}}`)
             opp.backrunTxs = [ txRequest.signedRequest ]
             return opp
         }
@@ -108,15 +114,13 @@ async function backrunPendingRequests(blockNumber) {
 }
 
 /**
- * Execute opportunity and log it to console and to storage
+ * Execute opportunities and log it to console and to storage
  * @param {Array} opps 
  * @param {Integer} blockNumber 
  */
  async function executeOpps(opps, blockNumber) {
     // Sort opps by net profitability
     opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
-    // Filter for non-overlapping swaps
-    opps = getParallelOpps(opps)
     // To increase chances of success submit each opp in its own bundle
     let bundleRequests = await Promise.all(opps.map(async opp => {
         let submitTimestamp = Date.now()
@@ -134,6 +138,26 @@ async function backrunPendingRequests(blockNumber) {
     }))
     logger.logOpps(opps, blockNumber)
     return bundleRequests
+}
+
+/**
+ * Execute opportunity and log it to console and to storage
+ * @param {Object} opp 
+ * @returns {Object} 
+ */
+async function executeOpp(opp, blockNumber) {
+    let submitTimestamp = Date.now()
+    let r = await txManager.executeBundleForOpps([ opp ], blockNumber)
+    let responseTimestamp = Date.now()
+    // Log to csv
+    logger.logRelayRequest(
+        blockNumber,
+        submitTimestamp, 
+        responseTimestamp, 
+        r.request, 
+        r.response
+    )
+    return r
 }
 
 /**
@@ -205,9 +229,60 @@ async function backrunRawRequest(rawTxRequest, blockNumber) {
         logger.logOpps([opp], blockNumber)  // Doesnt wait for it
         return archerApiParams
     } else {
-        utils.debug('No opportunities found')
+        utils.verboseLog('No opportunities found')
         return {}
     }
+}
+
+/**
+ * Estimates and returns the profit for backrunning trade
+ * Profit is estimated for conditions(reserves) when the function is called
+ * @param {BigNumber} amountIn Amount the trade is started with 
+ * @param {BigNumber} amountOutMin Minimal amount recieved at the end of the trade 
+ * @param {Array} tknPathAdd Addresses of tokens in sequence they will be traded 
+ * @param {String} exchange Name of the exchange (needs to match a key in pool obj)
+ * @param {Integer} [blockNumber='latest'] Block for which profit will be estimated
+ * @returns {BigNumber}
+ */
+async function estimateProfitForTrade(_amountIn, _amountOutMin, tknPathAdd, exchange, blockNumber='latest') {
+    // Token address => token objects
+    let tknPath = tknPathAdd.map(tknAddress => {
+        let tkn = instrMng.getTokenByAddress(tknAddress)
+        if (!tkn) { throw new Error('Unknown token address') }
+        return tkn
+    })
+    // Normalize units
+    let amountIn = utils.normalizeUnits(_amountIn, tknPath[0].decimal)
+    let amountOutMin = utils.normalizeUnits(_amountOutMin, tknPath[tknPath.length-1].decimal)
+    // Get pools the trade uses and virtual reserves at the end of the trade
+    let usedPools = backrunner.findPoolsForTknPath(exchange, tknPath.map(t=>t.id))  // Array of pool objs
+    if (!usedPools) { throw new Error('One of the pools for token path not found') }
+    let callArgs = {
+        amountIn, 
+        tknIds: tknPath.map(t=>t.id), 
+        poolIds: usedPools.map(p=>p.id)
+    }
+    // Find paths that go through the same pool as the trade
+    let pathsWithBackrun = instrMng.filterPathsByPools(
+        getPaths(), 
+        callArgs.poolIds
+    )
+    let _reserves = blockNumber=='latest' ? RESERVES : await reservesMng.fetchPastReservesForPaths(
+        pathsWithBackrun, blockNumber
+    )
+    let { virtualReserves, amountOut } = backrunner.getVirtualReserves(_reserves, callArgs)
+    if (blockNumber!='latest') {
+        // Pass all fork reserves as virtual ones to use forked ones
+        virtualReserves = { ..._reserves, ...virtualReserves }
+    }
+    if (amountOut.lt(amountOutMin)) { throw new Error('Insufficient amount out') }
+    
+    // Estimate opportunities after the trade
+    let opps = getOppsForVirtualReserves(pathsWithBackrun, virtualReserves)
+    // Return the gross profit for the opportunity with most net profit
+    let [ bestOpp ] = opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
+    if (!bestOpp) { throw new Error('No opportunity found') }
+    return bestOpp.grossProfit
 }
 
 /**
@@ -296,6 +371,7 @@ function getPaths() {
 
 module.exports = {
     handleNewBackrunRequest,
+    estimateProfitForTrade,
     handleBlockUpdate,
     backrunRawRequest,
     updateReserves,

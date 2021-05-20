@@ -1,6 +1,7 @@
 const express = require('express')
 
 const { provider, signer } = require('./provider').ws
+const { BigNumber } = require('ethers')
 const instrMng = require('./instrManager')
 const arbbot = require('./arbbot')
 const config = require('./config')
@@ -36,7 +37,7 @@ function startListeningForBlocks() {
     PROVIDER.on('block', async (blockNumber) => {
         if (blockNumber > BLOCK_HEIGHT) {
             BLOCK_HEIGHT = blockNumber
-            utils.debug(`{ "action": "blockReceived", "currentBlock": "${blockNumber}" }`)
+            utils.verboseLog(`{ "action": "blockReceived", "currentBlock": "${blockNumber}" }`)
             let logs = await PROVIDER.getLogs(filter)
             let changedPools = []
             logs.forEach(l => {
@@ -195,10 +196,50 @@ async function startRequestUpdates() {
             )
         }
     })
+    app.post("/estimateProfit", async (req, res) => {
+        let request = req.body
+        let recvBlockHeight = BLOCK_HEIGHT  // Block height at which request was recieved
+        let recvTimestamp = Date.now()  // Time when request was recieved
+        let response
+        try {
+            request = JSON.parse(request)
+            let result = await arbbot.estimateProfitForTrade(
+                BigNumber.from(request.amountIn), 
+                BigNumber.from(request.amountOutMin),
+                request.path, 
+                request.exchange,
+                request.blockNumber
+            )
+            result = result.toString()
+            response = {
+                status: 200,
+                msg: 'OK',
+                result
+            }
+        } catch (e) {
+            response = {
+                status: 503, 
+                msg: `InternalError: ${e}`
+            }
+        } finally {
+            res.json(response)
+            let returnTimestamp = Date.now()
+            logger.logBackrunRequest(
+                'estimateProfit',
+                request, 
+                response,
+                recvBlockHeight, 
+                recvTimestamp, 
+                returnTimestamp
+            )
+        }
+    })
     requestListener = app.listen(port, () => {
         console.log(`Server running on port ${port}`)
     })
 }
+
+
 
 function stopRequestUpdates() {
     if (requestListener) {
