@@ -178,6 +178,7 @@ async function executeOpp(opp, blockNumber) {
         let gasPrice = process.argv.includes('--zero-gas') ? ethers.constants.Zero : GAS_PRICE
         let gasCost= gasPrice.mul(path.gasAmount)
         let netProfit = grossProfit.sub(gasCost)
+        console.log(ethers.utils.formatUnits(netProfit))
         if (netProfit.gt(config.settings.arb.minProfit)) {
             return {
                 gasAmount: path.gasAmount,
@@ -274,6 +275,7 @@ async function estimateProfitForTrade(_amountIn, _amountOutMin, tknPathAdd, exch
     if (blockNumber!='latest') {
         // Pass all fork reserves as virtual ones to use forked ones
         virtualReserves = { ..._reserves, ...virtualReserves }
+        console.log(virtualReserves)
     }
     if (amountOut.lt(amountOutMin)) { throw new Error('Insufficient amount out') }
     
