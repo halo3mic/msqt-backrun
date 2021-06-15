@@ -14,7 +14,11 @@ class Table {
     static async flush() {
         let rows = this.getRows()
         if (rows.length) {
-            await logRowsToCsv(rows, this.getSavePath())
+            if (process.env.verbose) {
+                logToConsole(rows)
+            } else {
+                await logRowsToCsv(rows, this.getSavePath())
+            }
             rows.length = 0  // Clear memory
         }
     }
@@ -161,12 +165,16 @@ async function logRowsToCsv(rows, saveTo) {
     let writer = csvWriter()
     let headers = {sendHeaders: false}
     if (!fs.existsSync(saveTo))
-        headers = {headers: Object.keys(rows[0])}
+        headers = { headers: Object.keys(rows[0]) }
     writer = csvWriter(headers);
     writer.pipe(fs.createWriteStream(saveTo, {flags: 'a'}));
     rows.forEach(e => writer.write(e))
     writer.end(() => {df.resolve(true)})
     return df.promise
+}
+
+function logToConsole(rows) {
+    rows.forEach(console.log)
 }
 
 /**

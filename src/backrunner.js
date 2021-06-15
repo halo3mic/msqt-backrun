@@ -34,7 +34,6 @@ function decryptUnilikeTx(txRequest) {
             return null
         }
     } catch {
-        console.log('Transaction type is not supported')
         return null
     }
     let callArgs = {
@@ -89,7 +88,7 @@ function decryptRawTx(rawTx) {
     let sender = utils.getSignerFromRawTx(rawTx)
     let txRequest = unsign(rawTx).txData
     txRequest.to = ethers.utils.getAddress(txRequest.to)
-    txRequest.nonce = parseInt(txRequest.nonce, 16)
+    txRequest.nonce = parseInt(txRequest.nonce, 16) || 0  // If nonce is zero no nonce is passed
 
     let decryptMethods = [ decryptUnilikeTx, decryptArcherswapTx ]
     for (let decryptMethod of decryptMethods) {
@@ -143,7 +142,7 @@ function enrichCallArgs(callArgs) {
     let amountIn = utils.normalizeUnits(callArgs.amountIn, tknPath[0].decimal)
     let amountOutMin = utils.normalizeUnits(callArgs.amountOut, tknPath[tknPath.length-1].decimal)
     return {
-        tknPath: tknPath.map(t=>t.id),
+        tknIds: tknPath.map(t=>t.id),
         recvTimestamp: Date.now(),
         poolAddresses: usedPools.map(p=>p.address), 
         poolIds: usedPools.map(p=>p.id), 
@@ -183,51 +182,48 @@ function parseBackrunRequest(rawTx) {
  * Add decrypted and enriched signed transction to the local mempool
  * @param {String} rawTx 
  */
-function handleNewBackrunRequest(rawTx) {
+async function handleNewBackrunRequest(rawTx) {
+    // // If pool limit is reached remove some requests based on number of tries
+    // let spaceLeft = config.settings.arb.maxRequestPoolSize - BACKRUN_REQUESTS.length
+    // if (spaceLeft<1) {
+    //     removeRequestsFromPool(1)
+    // }
     let parsedRequest = parseBackrunRequest(rawTx)
     if (parsedRequest) {
         BACKRUN_REQUESTS.push(parsedRequest)
+        console.log('New request added!')
     }
 }
 
-/**
- * Check if a request fits conditions
- * @param {Object} request 
- * @returns {Boolean}
- */
-async function isValidRequest(request) {
-    // Skip and remove request if tx is past deadline
-    if (request.callArgs.deadline<=Date.now()/1e3) {
-        console.log('Tx is past deadline')
-        removeRequestFromPool(request.txHash)
-        return false
-    }
-    // Skip and remove request if tx is has lower nonce than the sender
-    let txCount = await PROVIDER.getTransactionCount(request.sender)
-    if (request.txRequest.nonce < txCount) {
-        console.log('Tx has lower nonce than the sender')
-        removeRequestFromPool(request.txHash)
-        return false
-    }
-    // Skip and remove request if tx was already mined
-    let txReceipt = await PROVIDER.getTransactionReceipt(request.txHash)
-    if (txReceipt && txReceipt.status=='1') {
-        console.log('Tx was already mined')
-        removeRequestFromPool(request.txHash)
-        return false
-    }
-    // Skip and remove tx if sender doesnt have enough funds
-    // TODO: Account for tx gas cost more accurately
-    // let senderEth = await PROVIDER.getBalance(request.sender)
-    // if (senderEth.lt(request.callArgs.amountIn)) {
-    //     console.log('Insufficient funds')
-    //     removeRequestFromPool(request.txHash)
-    //     return false
-    // }
-    // TODO: Check if sender has enough permission and tokens for trading
+// /**
+//  * Check if a request fits conditions
+//  * @param {Object} request 
+//  * @returns {Boolean}
+//  */
+// async function isValidRequest(request) {
+//     // Skip and remove request if tx is past deadline
+//     if (request.callArgs.deadline<=Date.now()/1e3) {
+//         console.log('Tx is past deadline')
+//         removeRequestFromPool(request.txHash)
+//         return false
+//     }
+//     // Skip and remove request if tx is has lower nonce than the sender
+//     let txCount = await PROVIDER.getTransactionCount(request.sender)
+//     if (request.txRequest.nonce < txCount) {
+//         console.log('Tx has lower nonce than the sender')
+//         removeRequestFromPool(request.txHash)
+//         return false
+//     }
+//     // Skip and remove request if tx was already mined
+//     let txReceipt = await PROVIDER.getTransactionReceipt(request.txHash)
+//     if (txReceipt && txReceipt.status=='1') {
+//         console.log('Tx was already mined')
+//         removeRequestFromPool(request.txHash)
+//         return false
+//     }
 
-    return true
-}
+//     return true
+// }
 
 /**
  * Calulate the reserves after trade is executed 
@@ -237,7 +233,7 @@ async function isValidRequest(request) {
  * @returns {Object}
  */
 function getVirtualReserves(reserves, callArgs) {
-    let { amountIn, tknPath, poolIds: poolPath } = callArgs
+    let { amountIn, tknIds: tknPath, poolIds: poolPath } = callArgs
     let amountOut
     let virtualReserves = {}
     for (let i=0; i<poolPath.length; i++) {
@@ -252,19 +248,18 @@ function getVirtualReserves(reserves, callArgs) {
     return { virtualReserves, amountOut }
 }
 
-function removeRequestsFromPool(num) {
-    BACKRUN_REQUESTS = BACKRUN_REQUESTS.sort(
-        (a,b) => a.recvTimestamp-b.recvTimestamp
-    ).slice(0, num)
-}
+// function removeRequestsFromPool(num) {
+//     // Remove the ones added first 
+//     BACKRUN_REQUESTS = BACKRUN_REQUESTS.slice(num, BACKRUN_REQUESTS.length)
+// }
 
 function getBackrunRequests() {
     return BACKRUN_REQUESTS
 }
 
-async function getValidBackrunRequests() {
-    return Promise.all(BACKRUN_REQUESTS.filter(isValidRequest))
-}
+// async function getValidBackrunRequests() {
+//     return Promise.all(BACKRUN_REQUESTS.filter(isValidRequest))
+// }
 
 function cleanRequestsPool() {
     BACKRUN_REQUESTS = []
@@ -276,8 +271,9 @@ function removeRequestFromPool(hash) {
 
 module.exports = { 
     handleNewBackrunRequest, 
-    getValidBackrunRequests,
+    // getValidBackrunRequests,
     removeRequestFromPool,
+    findPoolsForTknPath,
     decryptArcherswapTx,
     parseBackrunRequest,
     getBackrunRequests,
@@ -285,7 +281,7 @@ module.exports = {
     cleanRequestsPool,
     decryptUnilikeTx, 
     enrichCallArgs,
-    isValidRequest,
+    // isValidRequest,
     decryptRawTx,
     init 
 }

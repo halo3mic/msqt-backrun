@@ -35,13 +35,15 @@ function getPoolsForPaths(_paths) {
  * Set paths that fit configuration
  */
  function filterPathsByConfig(_paths) {
-    _paths = _paths.filter(path => {
-        return (
+     _paths = _paths.filter(path => {
+         let exchangePath = path.pools.map(poolId=>_poolById[poolId].exchange)
+         return (
             path.tkns.filter(t => config.settings.arb.blacklistedTokens.includes(t)).length == 0 &&  // Exclude blacklisted tokens
             path.tkns[0] == config.settings.arb.baseAsset &&  // Paths needs to start in BASE-ASSET
             path.tkns[path.tkns.length - 1] == config.settings.arb.baseAsset &&  // Path needs to end in BASE-ASSET
             path.enabled &&  // Path needs to be enabled
-            config.settings.arb.maxHops >= path.pools.length - 1  // Filter path length
+            config.settings.arb.maxHops >= path.pools.length &&  // Filter path length
+            exchangePath.filter(dex=>!config.settings.arb.whitelistedDexes.includes(dex)).length == 0  // Filter dexes
         )
     })
     console.log('Found ', _paths.length, ' valid paths')
@@ -72,7 +74,7 @@ function getPoolsForPaths(_paths) {
 /**
  * Return only paths that include at least one of the pools
  * @param {Array} paths The paths that should be checked
- * @param {Array} updatedPools The pool addresses that have reserves changed
+ * @param {Array} pools The pool ids that paths should be filtered by
  * @returns 
  */
  function filterPathsByPools(paths, pools) {
@@ -84,6 +86,21 @@ function getPoolsForPaths(_paths) {
     })
 }
 
+/**
+ * Return only paths that include all tokens
+ * @param {Array} paths The paths that should be checked
+ * @param {Array} tokens The token ids paths should be filtered by
+ * @returns 
+ */
+function filterPathsByTokens(paths, tokens) {
+    return paths.filter(path => {
+        // Only inlude the paths using a pool that was updated 
+        return path.tkns.filter(tkn => {
+            return !tokens.includes(tkn)
+        }).length == 0
+    })
+}
+
 module.exports = {
     getPathById: id => _pathById[id], 
     getPoolById: id => _poolById[id], 
@@ -92,6 +109,7 @@ module.exports = {
     getTokenByAddress: id => _tokenByAddress[id],
     filterPathsWithEmptyPool,
     filterPathsByConfig,
+    filterPathsByTokens,
     filterPathsByPools,
     getPoolsForPaths,
     tokens,

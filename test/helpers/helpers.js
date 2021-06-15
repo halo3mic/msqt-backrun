@@ -11,7 +11,6 @@ function load() {
     arbbot = require('../../src/arbbot')
     config = require('../../src/config')
     utils = require('../../src/utils')
-    require('./globalTestConfig')
     let addresses = require('./addresses.json') 
     assets = addresses.assets
     unilikeRouters = addresses.unilikeRouters
@@ -44,9 +43,11 @@ function load() {
             params: [ address ],
           })
     }
-    postToBot = function (method, data) {
+    postToBot = function (method, data, port) {
+        let url = 'http://localhost'
+        port = port || 8888
         return fetch(
-            'http://localhost:8888/'+method, 
+            `${url}:${port}/${method}`, 
             {
                 method: 'post',
                 body:    data,
@@ -81,13 +82,12 @@ function load() {
         }
         return [ it, describe ]
     }
-    async function topUpAccountWithETH(topper, recieverAddress, amount) {
+    topUpAccountWithETH = async function (topper, recieverAddress, amount) {
         await topper.sendTransaction({
             to: recieverAddress, 
             value: amount
         })
     }
-
 	topUpAccountWithToken = async function (topper, recieverAddress, tokenAddress, amount, unilikeRouterAddress) {
         let router = unilikeRouterAddress || unilikeRouters.uniswap
         let routerContract = new ethers.Contract(router, config.ABIS['uniswapRouter'])
@@ -98,8 +98,19 @@ function load() {
             parseInt(Date.now()/1e3)+3000
         ).then(response => response.wait())
     }
+    getInternalTxsForTx = (txHash) => {
+        return fetch(
+            `https://api.etherscan.io/api?module=account&action=txlistinternal&txhash=${txHash}&apikey=${process.env.ETHERSCAN_TOKEN}`
+        )
+        .then(r => r.json())
+        .then(r => r.result)
+    }
     // Actions
     [ it, describe ]  = modifyColors(it, describe)
+    // Dont overwrite the default logs
+    config.constants.paths.requests = __dirname + '/../logs/.test.requests.csv'
+    config.constants.paths.relayRequests = __dirname + '/../logs/.test.relayRequests.csv'
+    config.constants.paths.opps = __dirname + '/../logs/.test.opps.csv'
 }
 
 

@@ -39,7 +39,7 @@ const config = require('./config')
     const jsonResult = await result.json()
     const option = jsonResult.data[speed].toString()
     let gasPrice = ethers.BigNumber.from(option)
-    console.log(`{ "action": "updatedOEGasPrice", "gasPrice": "${option}", "priority": "${speed}" }`)
+    verboseLog(`{ "action": "updatedOEGasPrice", "gasPrice": "${option}", "priority": "${speed}" }`)
     // Sense check that API returned the gas price in the right format
     if (gasPrice.lt(ethers.utils.parseUnits('1', 'gwei'))) {
         throw new Error('Gas price lower than 1 gwei')
@@ -160,6 +160,16 @@ function invertMap(mapping) {
     }))
 }
 
+/**
+ * Print arguments only if "verboselog" flag is passed
+ * @param  {...any} args
+ */
+function verboseLog(...args) {
+    if (config.settings.verbose) {
+        console.log(...args)
+    }
+}
+
 module.exports = { 
     convertTxDataToByteCode, 
     submitBundleToArcher, 
@@ -168,6 +178,7 @@ module.exports = {
     unnormalizeUnits,
     normalizeUnits,
     fetchGasPrice, 
+    verboseLog,
     invertMap,
     sleep, 
     isHex

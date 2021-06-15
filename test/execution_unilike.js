@@ -46,7 +46,7 @@ describe('Execution', () => {
 		)
 		let signedTradeTxRequest1 = await signer.signTransaction(tradeTxRequest1)
 		// Handle new request
-		backrunner.handleNewBackrunRequest(signedTradeTxRequest1)
+		await backrunner.handleNewBackrunRequest(signedTradeTxRequest1)
 		// Check that request was put in backrun requests pool
 		let backrunRequests = backrunner.getBackrunRequests()
 		expect(backrunRequests.length).to.equal(1)
@@ -59,7 +59,7 @@ describe('Execution', () => {
 			ethers.utils.parseUnits('20', 'gwei'), 
 			pathsToCheck
 		)
-		let opps = backrunRequests.map(arbbot.getOppsForRequest).flat()
+		let opps = backrunRequests.map(arbbot.getOppForRequest)
 		expect(opps.length).to.above(0)
 		opps.sort((a, b) => b.netProfit.gt(a.netProfit) ? 1 : -1)
 		let dispatcherTx = await txMng.formDispatcherTx(

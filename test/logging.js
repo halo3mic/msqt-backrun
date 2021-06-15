@@ -3,10 +3,10 @@ require('./helpers/helpers').load()
 describe('Logging', () => {
 	
 	before(async () => {
-		cleanTempLogs()
 		genNewAccount = await makeAccountGen()
 		signer = ethers.Wallet.createRandom().connect(ethers.provider)
 		botOperator = new ethers.Wallet(config.settings.network.privateKey, ethers.provider)
+		cleanTempLogs()
     })
 
 	beforeEach(() => {
@@ -196,17 +196,17 @@ describe('Logging', () => {
 		it('All opportunities founds with `executeOpps` should be saved to csv', async () => {
 			// Find opps and "handle them"
 			let backrunRequest = backrunner.parseBackrunRequest(signedTradeTxRequest)
-    		let opps = arbbot.getOppsForRequest(backrunRequest)
+    		let opp = arbbot.getOppForRequest(backrunRequest)
 			let r = await arbbot.executeOpps(
-				opps,
+				[ opp ],
 				await ethers.provider.getBlockNumber()
 			)
-			console.log(r)
 			let { request, response } = await r[0]
 			expect(request.body).to.include(signedTradeTxRequest)
 			// Confirm the request and its response were saved
-			expect(logger.getOpps().length).to.gt(0)
+			expect(logger.getOpps().length).to.equal(1)
 			await logger.flush()  // Flush data from memory to disk
+			await utils.sleep(100)
             let savedOpps = await csv().fromFile(config.constants.paths.opps)
 			expect(logger.getOpps().length).to.equal(0)  // Make sure temp memory is cleared
 			// Expected response 
@@ -268,11 +268,10 @@ describe('Logging', () => {
 		it('Response to sending bundle to Archer relay should be saved in csv', async () => {
 			// Find opps and execute them
 			let backrunRequest = backrunner.parseBackrunRequest(signedTradeTxRequest)
-    		let opps = arbbot.getOppsForRequest(backrunRequest)
-			let r = await arbbot.executeOpps(opps, await ethers.provider.getBlockNumber())
+    		let opp = arbbot.getOppForRequest(backrunRequest)
+			let r = await arbbot.executeOpps([ opp ], await ethers.provider.getBlockNumber())
 			let { request, response } = await r[0]
 			expect(response).to.be.not.undefined
-			console.log(response)
 			// Confirm the request and its response were saved
 			expect(logger.getRelayRequests().length).to.equal(1)
 			await logger.flush()  // Flush data from memory to disk

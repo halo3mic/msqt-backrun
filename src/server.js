@@ -1,6 +1,7 @@
 const express = require('express')
 
 const { provider, signer } = require('./provider').ws
+const { BigNumber } = require('ethers')
 const instrMng = require('./instrManager')
 const arbbot = require('./arbbot')
 const config = require('./config')
@@ -8,14 +9,17 @@ const logger = require('./logger')
 const utils = require('./utils')
 
 let BLOCK_HEIGHT
+let PROVIDER
 let POOLS  // Addresses for pools that are used by valid paths
 let requestListener
 
-async function init() {
+async function init(_provider, whitelistedPaths, providerForInitialReserves) {
+    providerForInitialReserves = providerForInitialReserves || provider
+    PROVIDER = _provider || provider
     console.log('Initializing')
     let startGasPrice = await utils.fetchGasPrice(config.settings.gas.gasSpeed)
-    await arbbot.init(provider, signer, startGasPrice)
-    BLOCK_HEIGHT = await provider.getBlockNumber()
+    await arbbot.init(PROVIDER, signer, startGasPrice, whitelistedPaths, providerForInitialReserves)
+    BLOCK_HEIGHT = await PROVIDER.getBlockNumber()
     POOLS = instrMng.getPoolsForPaths(arbbot.getPaths()).map(p => p.address)
 }
 
@@ -30,11 +34,11 @@ function startListeners() {
  */
 function startListeningForBlocks() {
     const filter = { topics: [ config.constants.uniswapSyncTopic ] }
-    provider.on('block', async (blockNumber) => {
+    PROVIDER.on('block', async (blockNumber) => {
         if (blockNumber > BLOCK_HEIGHT) {
             BLOCK_HEIGHT = blockNumber
-            console.log(`{ "action": "blockReceived", "currentBlock": "${blockNumber}" }`)
-            let logs = await provider.getLogs(filter)
+            utils.verboseLog(`{ "action": "blockReceived", "currentBlock": "${blockNumber}" }`)
+            let logs = await PROVIDER.getLogs(filter)
             let changedPools = []
             logs.forEach(l => {
                 if (POOLS.includes(l.address)) {
@@ -83,7 +87,6 @@ async function startRequestUpdates() {
             next()
         })
     })
-    // TODO: Make a helper function for the post requests
     app.post("/submitRequest", async (req, res) => {
         let request = req.body
         let recvBlockHeight = BLOCK_HEIGHT  // Block height at which request was recieved
@@ -91,7 +94,7 @@ async function startRequestUpdates() {
         let response
         try {
             if (utils.isHex(request)) {
-                arbbot.handleNewBackrunRequest(request)
+                await arbbot.handleNewBackrunRequest(request)
                 response = {
                     status: 200, 
                     msg: 'OK'
@@ -193,10 +196,50 @@ async function startRequestUpdates() {
             )
         }
     })
+    app.post("/estimateProfit", async (req, res) => {
+        let request = req.body
+        let recvBlockHeight = BLOCK_HEIGHT  // Block height at which request was recieved
+        let recvTimestamp = Date.now()  // Time when request was recieved
+        let response
+        try {
+            request = JSON.parse(request)
+            let result = await arbbot.estimateProfitForTrade(
+                BigNumber.from(request.amountIn), 
+                BigNumber.from(request.amountOutMin),
+                request.path, 
+                request.exchange,
+                request.blockNumber
+            )
+            result = result.toString()
+            response = {
+                status: 200,
+                msg: 'OK',
+                result
+            }
+        } catch (e) {
+            response = {
+                status: 503, 
+                msg: `InternalError: ${e}`
+            }
+        } finally {
+            res.json(response)
+            let returnTimestamp = Date.now()
+            logger.logBackrunRequest(
+                'estimateProfit',
+                request, 
+                response,
+                recvBlockHeight, 
+                recvTimestamp, 
+                returnTimestamp
+            )
+        }
+    })
     requestListener = app.listen(port, () => {
         console.log(`Server running on port ${port}`)
     })
 }
+
+
 
 function stopRequestUpdates() {
     if (requestListener) {
@@ -204,8 +247,8 @@ function stopRequestUpdates() {
     }
 }
 
-async function main() {
-    await init()
+async function main(_provider) {
+    await init(_provider)
     startListeners()
 }
 

@@ -34,7 +34,7 @@ describe('Handle new backrun request', () => {
 			deadline: parseInt(Date.now()/1e3)+300
 		}
 		let enrichedArgs = backrunner.enrichCallArgs(callArgs)
-		expect(enrichedArgs.tknPath.join()).to.equal(['T0000', 'T0003'].join())
+		expect(enrichedArgs.tknIds.join()).to.equal(['T0000', 'T0003'].join())
 		expect(enrichedArgs.poolAddresses.join()).to.equal([
 			'0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc'
 		].join())
@@ -53,7 +53,7 @@ describe('Handle new backrun request', () => {
 			deadline: parseInt(Date.now()/1e3)+300
 		}
 		let enrichedArgs = backrunner.enrichCallArgs(callArgs)
-		expect(enrichedArgs.tknPath.join()).to.equal(['T0000', 'T0006', 'T0003'].join())
+		expect(enrichedArgs.tknIds.join()).to.equal(['T0000', 'T0006', 'T0003'].join())
 		expect(enrichedArgs.poolAddresses.join()).to.equal([
 			'0xA478c2975Ab1Ea89e8196811F51A7B7Ade33eB11',
 			'0xAE461cA67B15dc8dc81CE7615e0320dA1A9aB8D5' 
@@ -255,9 +255,6 @@ describe('Handle new backrun request', () => {
 		})
 	
 		it('Signed transaction request to /backrunRequest should return empty object if opps are not found for request', async () => {
-			// ! Could fail if there actually is opportunity for pools trade goes through without backrunning
-			// TODO: Prevent above
-			// Make request and sign it
 			let txCallArgs = {
 				amountIn: ethers.utils.parseEther('0.001'),
 				amountOut: ZERO,
@@ -314,6 +311,60 @@ describe('Handle new backrun request', () => {
 			response = await response.json()
 			expect(response.status).to.equal(422)
 			expect(response.msg).to.equal('RequestError: Not in hex format')
+		})
+
+		it('Request to /estimateProfit should return integer if profitable opp is found - live', async () => {
+			let payload = {
+				amountIn: ethers.utils.parseUnits('50').toString(),
+				amountOutMin: ZERO.toString(),
+				path: [ assets.WETH, assets.ARCH ],
+				exchange: 'uniswap'
+			}
+			let requestSubmissionTime = Date.now()
+			let response = await postToBot('estimateProfit', JSON.stringify(payload), 8888).then(r => r.json())
+			let requestRecievedTime = Date.now()
+			console.log(`Time taken for request: ${requestRecievedTime-requestSubmissionTime} ms`)
+			console.log(response)
+			console.log(ethers.utils.formatUnits(response.result))
+			expect(response.msg).to.equal('OK')
+			expect(response.status).to.equal(200)
+			expect(ethers.BigNumber.from(response.result)).to.gt('0')
+		})
+
+		it('Request to /estimateProfit should return integer if profitable opp is found - for past blocks', async () => {
+			let payload = {
+				amountIn: ethers.utils.parseUnits('50').toString(),
+				amountOutMin: ZERO.toString(),
+				path: [ assets.WETH, assets.ARCH ],
+				exchange: 'uniswap', 
+				blockNumber: 12440022 
+			}
+			let requestSubmissionTime = Date.now()
+			let response = await postToBot('estimateProfit', JSON.stringify(payload), 8888).then(r => r.json())
+			let requestRecievedTime = Date.now()
+			console.log(`Time taken for request: ${requestRecievedTime-requestSubmissionTime} ms`)
+			console.log(response)
+			console.log(ethers.utils.formatUnits(response.result))
+			expect(response.msg).to.equal('OK')
+			expect(response.status).to.equal(200)
+			expect(ethers.BigNumber.from(response.result)).to.gt('0')
+		})
+
+		it('Request to /estimateProfit should return an error if no opp is found', async () => {
+			let payload = {
+				amountIn: ethers.utils.parseUnits('10').toString(),
+				amountOutMin: ZERO.toString(),
+				path: [ assets.WETH, assets.USDC ],
+				exchange: 'uniswap'
+			}
+			let requestSubmissionTime = Date.now()
+			let response = await postToBot('estimateProfit', JSON.stringify(payload), 8888).then(r => r.json())
+			let requestRecievedTime = Date.now()
+			console.log(`Time taken for request: ${requestRecievedTime-requestSubmissionTime} ms`)
+			console.log(response)
+			expect(response.msg).to.equal('InternalError: Error: No opportunity found')
+			expect(response.status).to.equal(503)
+			expect(response.result).to.be.undefined
 		})
 
 	})
