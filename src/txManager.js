@@ -33,6 +33,7 @@ async function executeBundleForOpps(opps, blockNumber) {
             console.log(e)
         }
     }
+    return {}
 }
 
 /**

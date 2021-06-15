@@ -9,6 +9,7 @@ const logger = require('./logger')
 const utils = require('./utils')
 
 let BLOCK_HEIGHT
+let LAST_BLOCK_UPDATE
 let PROVIDER
 let POOLS  // Addresses for pools that are used by valid paths
 let requestListener
@@ -20,6 +21,7 @@ async function init(_provider, whitelistedPaths, providerForInitialReserves) {
     let startGasPrice = await utils.fetchGasPrice(config.settings.gas.gasSpeed)
     await arbbot.init(PROVIDER, signer, startGasPrice, whitelistedPaths, providerForInitialReserves)
     BLOCK_HEIGHT = await PROVIDER.getBlockNumber()
+    LAST_BLOCK_UPDATE = Date.now()
     POOLS = instrMng.getPoolsForPaths(arbbot.getPaths()).map(p => p.address)
 }
 
@@ -37,6 +39,7 @@ function startListeningForBlocks() {
     PROVIDER.on('block', async (blockNumber) => {
         if (blockNumber > BLOCK_HEIGHT) {
             BLOCK_HEIGHT = blockNumber
+            LAST_BLOCK_UPDATE = Date.now()
             utils.verboseLog(`{ "action": "blockReceived", "currentBlock": "${blockNumber}" }`)
             let logs = await PROVIDER.getLogs(filter)
             let changedPools = []
@@ -94,7 +97,11 @@ async function startRequestUpdates() {
         let response
         try {
             if (utils.isHex(request)) {
-                await arbbot.handleNewBackrunRequest(request)
+                await arbbot.handleNewBackrunRequest({
+                    lastBlockUpdate: LAST_BLOCK_UPDATE, 
+                    blockHeight: BLOCK_HEIGHT, 
+                    rawTxRequest: request, 
+                })
                 response = {
                     status: 200, 
                     msg: 'OK'

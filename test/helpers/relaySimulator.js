@@ -4,7 +4,9 @@ const config = require('../../src/config')
 const PORT = 8777
 let PROVIDER
 let inSimulation = []
+let recieved = []
 let LISTENER
+let PAUSED = false
 
 function startListening(provider) {
     PROVIDER = provider
@@ -26,8 +28,11 @@ function startListening(provider) {
         let response = []
         if (request) {
             let bundle = await getBundleFromRequest(request)
-            let r = await simulateBundle(bundle)
-            response = r
+            recieved.push(bundle)
+            if (!PAUSED) {
+                let r = await simulateBundle(bundle)
+                response = r
+            }
         }
         res.json(response)
     })
@@ -41,6 +46,16 @@ function stopListening() {
     if (LISTENER) {
         LISTENER.close()
     }
+}
+
+function pauseRelay() {
+    PAUSED = true
+    return true
+}
+
+function unpauseRelay() {
+    PAUSED = false
+    return true
 }
 
 async function getBundleFromRequest(rawRequest) {
@@ -62,7 +77,7 @@ async function simulateBundle(bundle) {
             inSimulation = inSimulation.filter(e => e!=bundle)  // Remove from the current simulations
             return txResponses
         } catch (e) {
-            return e
+            return { 'SimulationError': JSON.stringify(e) }
         }
     } else {
         return 'Bundle already submitted in simulation'
@@ -73,7 +88,26 @@ function executeRawTransaction(rawTx) {
     return PROVIDER.send('eth_sendRawTransaction', [rawTx])
 }
 
+function getBundlesInSimulation() {
+    return inSimulation
+}
+
+function getRecivedBundles() {
+    return recieved
+}
+
+function clear() {
+    inSimulation = []
+    recieved = []
+}
+
 module.exports = {
+    getBundlesInSimulation,
+    getRecivedBundles,
+    simulateBundle,
     startListening, 
-    stopListening
+    stopListening, 
+    unpauseRelay, 
+    pauseRelay, 
+    clear
 }

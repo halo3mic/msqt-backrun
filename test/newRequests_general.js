@@ -251,10 +251,15 @@ describe('Handle new backrun request', () => {
 			response = await response.json()
 			expect(response.msg).to.equal('OK')
 			expect(response.status).to.equal(200)
-			expect(response.result).to.have.all.keys(['ethCall', 'signature', 'senderAddress'])
+			expect(response.result).to.have.all.keys([
+				'blockNumber',
+				'response', 
+				'request',
+				'opp', 
+			])
 		})
 	
-		it('Signed transaction request to /backrunRequest should return empty object if opps are not found for request', async () => {
+		it('Signed transaction request to /backrunRequest should return empty response and opp object if opps are not found for request', async () => {
 			let txCallArgs = {
 				amountIn: ethers.utils.parseEther('0.001'),
 				amountOut: ZERO,
@@ -296,7 +301,14 @@ describe('Handle new backrun request', () => {
 			response = await response.json()
 			expect(response.msg).to.equal('OK')
 			expect(response.status).to.equal(200)
-			expect(response.result).to.be.empty
+			expect(response.result).to.have.all.keys([
+				'blockNumber',
+				'response', 
+				'request',
+				'opp', 
+			])
+			expect(response.result.response).to.be.empty
+			expect(response.result.opp).to.be.empty
 		})
 	
 		it('Request to /backrunRequest in invalid format shall be rejected', async () => {
