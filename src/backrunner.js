@@ -133,10 +133,13 @@ function enrichCallArgs(callArgs) {
     let tknPath = callArgs.tknPath.map(tknAddress => {
         return instrMng.getTokenByAddress(tknAddress)
     })
+    if (tknPath.some(e=>e==undefined)) {
+        throw new Error('Unsupported token')
+    }
     let dexName = routerDexMap[callArgs.router]
     let usedPools = findPoolsForTknPath(dexName, tknPath.map(t=>t.id))
     if (!usedPools) {
-        return
+        throw new Error('Unsupported pool')
     }
     // Normalize amounts
     let amountIn = utils.normalizeUnits(callArgs.amountIn, tknPath[0].decimal)
@@ -164,11 +167,11 @@ function parseBackrunRequest(rawTx) {
         return
     }
     let enrichedArgs = enrichCallArgs(callArgs)
-    if (!enrichedArgs) {
-        console.log('Unsupported pool')
-        // Exit if unsupported pool
-        return
-    }
+    // if (!enrichedArgs) {
+    //     console.log('Unsupported pool')
+    //     // Exit if unsupported pool
+    //     return
+    // }
     return {
         callArgs: enrichedArgs, 
         signedRequest: rawTx,

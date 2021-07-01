@@ -14,11 +14,12 @@ class Table {
     static async flush() {
         let rows = this.getRows()
         if (rows.length) {
-            if (process.env.verbose) {
-                logToConsole(rows)
-            } else {
-                await logRowsToCsv(rows, this.getSavePath())
-            }
+            // if (process.env.verbose) {
+            //     logToConsole(rows)
+            // } else {
+            //     await logRowsToCsv(rows, this.getSavePath())
+            // }
+            logToConsole(rows)
             rows.length = 0  // Clear memory
         }
     }
@@ -54,10 +55,9 @@ class BackrunRequest extends Table {
             timestampRecv: recvTimestamp, 
             timestampResp: respTimestamp,
             request, 
-            response: JSON.stringify(response)
-        }
-        console.log(JSON.stringify(logMsg))
-        this.rowsTemp.push(logMsg)
+            response: JSON.stringify(response),
+            table: 'backrun-requests'
+        })
     }
 }
 
@@ -77,10 +77,9 @@ class Opportunity extends Table {
             netProfit: opp.netProfit, 
             gasAmount: opp.gasAmount, 
             inputAmount: opp.inputAmount, 
-            backrunTxs: opp.backrunTxs.join(',')
-        }
-        console.log(JSON.stringify(logMsg))
-        this.rowsTemp.push(logMsg)
+            backrunTxs: opp.backrunTxs.join(','),
+            table: 'opportunities'
+        })
     }
 }
 
@@ -112,10 +111,9 @@ class RelayRequest extends Table {
             timestampRecv: submitTimestamp, 
             timestampResp: responseTimestamp, 
             request: JSON.stringify(request), 
-            response: JSON.stringify(response)
-        }
-        console.log(JSON.stringify(logMsg))
-        this.rowsTemp.push(logMsg)
+            response: JSON.stringify(response),
+            table: 'relay-requests'
+        })
     }
 }
 
