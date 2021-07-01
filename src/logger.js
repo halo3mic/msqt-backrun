@@ -1,8 +1,10 @@
 const csvWriter = require('csv-write-stream')
 const deffered = require('deffered')
 const config = require('./config')
-const md5 = require('md5')
+const { signer } = require('./provider').http
 const fs = require('fs')
+const { id } = require('ethers/lib/utils')
+
 
 class Table {
 
@@ -45,12 +47,13 @@ class BackrunRequest extends Table {
         recvTimestamp, 
         respTimestamp
     ) {
-        this.rowsTemp.push({
+        const logMsg = {
+            action: method,
+            user: signer.address,
             id: idFromVals(arguments), 
             blockNumber: recvBlockHeight,
             timestampRecv: recvTimestamp, 
-            timestampResp: respTimestamp, 
-            method,
+            timestampResp: respTimestamp,
             request, 
             response: JSON.stringify(response),
             table: 'backrun-requests'
@@ -64,9 +67,11 @@ class Opportunity extends Table {
     static getRows = () => this.rowsTemp
     static getSavePath = () => config.constants.paths.opps
     static addRow(opp, blockNumber) {
-        this.rowsTemp.push({
+        const logMsg = {
+            action: 'newOpportunity',
+            user: signer.address,
             id: idFromVals(arguments),
-            blockNumber, 
+            blockNumber,
             path: opp.path.id,
             grossProfit: opp.grossProfit, 
             netProfit: opp.netProfit, 
@@ -98,8 +103,10 @@ class RelayRequest extends Table {
         request, 
         response
     ) {
-        this.rowsTemp.push({
-            id: idFromVals(arguments), 
+        const logMsg = {
+            action: 'opportunitySubmitted',
+            user: signer.address,
+            id: id(request.body), 
             blockNumber: recvBlockHeight,
             timestampRecv: submitTimestamp, 
             timestampResp: responseTimestamp, 
@@ -174,7 +181,7 @@ function logToConsole(rows) {
  * @returns {String}
  */
  function idFromVals(vals) {
-    return md5(JSON.stringify(vals))
+    return id(JSON.stringify(vals))
 }
 
 module.exports = {

@@ -14,6 +14,7 @@
         "tipperShareRate": "500000000000000000", 
         "maxHops": 3, 
         "baseAsset": "T0000",
+        "submissionWindow": 10000,
         "blacklistedTokens": [
             "T0077",
             "T0079"

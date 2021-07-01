@@ -1,4 +1,5 @@
 require('./helpers/helpers').load()
+const relaySimulator = require('./helpers/relaySimulator')
 const { provider: mainnetProvider } = require('../src/provider').ws
 
 describe('Handle new backrun request', () => {
@@ -8,12 +9,32 @@ describe('Handle new backrun request', () => {
 		signer = ethers.Wallet.createRandom().connect(ethers.provider)
 		botOperator = new ethers.Wallet(config.settings.network.privateKey, ethers.provider)
 		backrunner.init(ethers.provider)
+		const startGasPrice = ethers.utils.parseUnits('20', 'gwei')
+		const whitelistedPaths = null
+		const providerForInitialReserves = mainnetProvider
+
+		// Send bundles to local relay simulator
+		config.constants.archerBundleEndpoint = 'http://localhost:8777/sendBundle'
+		relaySimulator.startListening(ethers.provider)
+		relaySimulator.pauseRelay()
+		await arbbot.init(
+			ethers.provider, 
+			botOperator, 
+			startGasPrice, 
+			whitelistedPaths, 
+			providerForInitialReserves
+		)
 	})
 
 	beforeEach(() => {
 		trader = genNewAccount()
 		// Restart requests pool with each test
 		backrunner.cleanRequestsPool()
+		relaySimulator.clear()
+	})
+
+	after(() => {
+		relaySimulator.unpauseRelay()
 	})
 
 	it('ArcherSwap `swapExactETHForTokensWithTipAmount` signed tx should be decrypted', async () => {
@@ -258,66 +279,109 @@ describe('Handle new backrun request', () => {
 		expect(sender).to.equal(signer.address)
 	})
 
-	// it('New requests that reach over the pool capacity replace the oldest requests', async () => {
-	// 	// Initialize arbbot
-	// 	await arbbot.init(
-	// 		ethers.provider, 
-	// 		botOperator, 
-	// 		ethers.utils.parseUnits('20', 'gwei'), 
-	// 		null, 
-	// 		mainnetProvider
-	// 	)
-	// 	// Create transaction for uniswap trade and sign it
-	// 	let amountIn = ethers.utils.parseUnits('11')
-	// 	let tipAmount = ethers.utils.parseUnits('0.0001')
-	// 	let archerswapRouter = new ethers.Contract(
-	// 		config.constants.routers.archerswap,
-	// 		abis['archerswapRouter'] 
-	// 	)
-	// 	let nextNonce = await signer.getTransactionCount()
-	// 	let tradeTxRequest = await archerswapRouter.populateTransaction['swapExactETHForTokensWithTipAmount'](
-	// 		unilikeRouters.sushiswap,
-	// 		[
-	// 			amountIn,
-	// 			ZERO, 
-	// 			[ assets.WETH, assets.ARCH ], 
-	// 			signer.address,
-	// 			parseInt(Date.now()/1e3)+3000, 
-	// 		],
-	// 		tipAmount, 
-	// 		{ 
-	// 			value: amountIn.add(tipAmount), 
-	// 			gasPrice: ZERO, 
-	// 			gasLimit: 300000,
-	// 			nonce: nextNonce, 
-	// 		}
-	// 	)
-	// 	let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest)
-	// 	await backrunner.handleNewBackrunRequest(signedTradeTxRequest)
-	// 	// Give one try for this tx request - should find opportunity
-	// 	await arbbot.backrunPendingRequests(0)
+	it('New request should be submitted to relay if in block submission window', async () => {
+		// Fill signer account
+		bank = genNewAccount() 
+		await bank.sendTransaction({
+			value: ethers.utils.parseEther('1000'),
+			to: signer.address, 
+		}).then(async txRequest => txRequest.wait())
+		// Create transaction for uniswap trade and sign it
+		let amountIn = ethers.utils.parseUnits('100')
+		let tipAmount = ethers.utils.parseUnits('0.0001')
+		let archerswapRouter = new ethers.Contract(
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
+		)
+		let nextNonce = await signer.getTransactionCount()
+		let tradeTxRequest1 = await archerswapRouter.populateTransaction['swapExactETHForTokensWithTipAmount'](
+			unilikeRouters.sushiswap,
+			[
+				amountIn,
+				ZERO, 
+				[ assets.WETH, assets.ARCH ], 
+				signer.address,
+				parseInt(Date.now()/1e3)+3000, 
+			],
+			tipAmount, 
+			{ 
+				value: amountIn.add(tipAmount), 
+				gasPrice: ZERO, 
+				gasLimit: 300000,
+				nonce: nextNonce, 
+			}
+		)
+		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest1)
+		await arbbot.handleNewBackrunRequest({
+			rawTxRequest: signedTradeTxRequest, 
+			lastBlockUpdate: Date.now(),
+			blockHeight: 0
+		})
+		await utils.sleep(1000)
+		// Expect that there is a profitable tx submitted to the relay
+		const recivedBundles = relaySimulator.getRecivedBundles()
+		expect(recivedBundles.length).to.equal(1)
+		expect(recivedBundles[0][0]).to.equal(signedTradeTxRequest)
+		const dispatcherBalBefore = await ethers.provider.getBalance(
+			config.constants.dispatcher
+		)
+		await relaySimulator.simulateBundle(recivedBundles[0])
+		const dispatcherBalAfter = await ethers.provider.getBalance(
+			config.constants.dispatcher
+		)
+		expect(dispatcherBalAfter).to.gt(dispatcherBalBefore)
+		// Expect the trade to be added to the local mempool
+		let backrunRequests = backrunner.getBackrunRequests()
+		expect(backrunRequests.length).to.equal(1)
+	})
 
-	// 	// Submit another tx request that will be above pool threshold
-	// 	tradeTxRequest.nonce = nextNonce + 1  // Change it so the signed request will be different
-	// 	let signedRequest2 = await signer.signTransaction(tradeTxRequest)
-	// 	await backrunner.handleNewBackrunRequest(signedRequest2)
-	// 	// Give one try for this tx request - should find opportunity
-	// 	await arbbot.backrunPendingRequests(0)
-	// 	expect(backrunner.getBackrunRequests().length).to.equal(2)
+	it('New request should not be submitted to relay if outside block submission window', async () => {
+		// Fill signer account
+		bank = genNewAccount() 
+		await bank.sendTransaction({
+			value: ethers.utils.parseEther('1000'),
+			to: signer.address, 
+		}).then(async txRequest => txRequest.wait())
+		// Create transaction for uniswap trade and sign it
+		let amountIn = ethers.utils.parseUnits('100')
+		let tipAmount = ethers.utils.parseUnits('0.0001')
+		let archerswapRouter = new ethers.Contract(
+			config.constants.routers.archerswap,
+			abis['archerswapRouter'] 
+		)
+		let nextNonce = await signer.getTransactionCount()
+		let tradeTxRequest1 = await archerswapRouter.populateTransaction['swapExactETHForTokensWithTipAmount'](
+			unilikeRouters.sushiswap,
+			[
+				amountIn,
+				ZERO, 
+				[ assets.WETH, assets.ARCH ], 
+				signer.address,
+				parseInt(Date.now()/1e3)+3000, 
+			],
+			tipAmount, 
+			{ 
+				value: amountIn.add(tipAmount), 
+				gasPrice: ZERO, 
+				gasLimit: 300000,
+				nonce: nextNonce, 
+			}
+		)
+		let signedTradeTxRequest = await signer.signTransaction(tradeTxRequest1)
+		const updateTimestamp = Date.now()+config.settings.submissionWindow+1
+		await arbbot.handleNewBackrunRequest({
+			rawTxRequest: signedTradeTxRequest, 
+			lastBlockUpdate: updateTimestamp,
+			blockHeight: 0
+		})
+		await utils.sleep(1000)
+		// Expect that the tx request was not submitted 
+		const recivedBundles = relaySimulator.getRecivedBundles()
+		expect(recivedBundles.length).to.equal(0)
+		// Expect that the tx request was added to the mempool
+		let backrunRequests = backrunner.getBackrunRequests()
+		expect(backrunRequests.length).to.equal(1)
+	})
 
-	// 	// Submit another tx request that above the threshold forcing the bot to toss one request
-	// 	// First limit the pool to only two requests
-	// 	config.settings.arb.maxRequestPoolSize = 2  
-	// 	// Submit the request that will overflow the mempool
-	// 	tradeTxRequest.nonce = nextNonce + 2  // Change it so the signed request will be different
-	// 	let signedRequest3 = await signer.signTransaction(tradeTxRequest)
-	// 	await backrunner.handleNewBackrunRequest(signedRequest3)
-	// 	// The bot should toss out the transaction request with most tries and leave the second one in
-	// 	let backrunRequests  = backrunner.getBackrunRequests()
-	// 	expect(backrunRequests.length).to.equal(2)
-	// 	expect(backrunRequests[0].signedRequest).to.equal(signedRequest2)
-	// 	expect(backrunRequests[1].signedRequest).to.equal(signedRequest3)
-
-	// })
-
+	
 })

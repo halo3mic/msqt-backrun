@@ -69,9 +69,10 @@ describe('Logging', () => {
 			expect(logger.getBackrunRequests().length).to.equal(1)
 			await logger.flush()  // Flush data from memory to disk
             let [ savedRequest ] = await csv().fromFile(config.constants.paths.requests)
+			console.log(savedRequest)
             expect(logger.getBackrunRequests().length).to.equal(0)  // Make sure temp memory is cleared
 			// Expected response 
-            expect(savedRequest.method).to.equal('submitRequest')
+            expect(savedRequest.action).to.equal('submitRequest')
             expect(savedRequest.request).to.equal(signedTradeTxRequest)
             expect(savedRequest.response).to.equal(JSON.stringify(response))
             expect(typeof savedRequest.id == 'string').to.be.true
@@ -96,7 +97,7 @@ describe('Logging', () => {
             let [ submitRequest, cancelRequest ] = await csv().fromFile(config.constants.paths.requests)
             expect(logger.getBackrunRequests().length).to.equal(0)  // Make sure temp memory is cleared
 			// Expected response
-            expect(cancelRequest.method).to.equal('cancelRequest')
+            expect(cancelRequest.action).to.equal('cancelRequest')
             expect(cancelRequest.request).to.equal(txRequestHash)
             expect(cancelRequest.response).to.equal(JSON.stringify(responseCancel))
             expect(typeof cancelRequest.id == 'string').to.be.true
@@ -116,7 +117,7 @@ describe('Logging', () => {
             let [ savedRequest ] = await csv().fromFile(config.constants.paths.requests)
             expect(logger.getBackrunRequests().length).to.equal(0)  // Make sure temp memory is cleared
 			// Expected response 
-            expect(savedRequest.method).to.equal('backrunRequest')
+            expect(savedRequest.action).to.equal('backrunRequest')
             expect(savedRequest.request).to.equal(signedTradeTxRequest)
             expect(savedRequest.response).to.equal(JSON.stringify(response))
             expect(typeof savedRequest.id == 'string').to.be.true
@@ -168,12 +169,10 @@ describe('Logging', () => {
 
 		it('All opportunities founds with `backrunRawRequest` should be saved to csv', async () => {
 			// Backrun raw request
-			let response = await arbbot.backrunRawRequest(
+			await arbbot.backrunRawRequest(
 				signedTradeTxRequest, 
 				await ethers.provider.getBlockNumber()
 			)
-			expect(response.ethCall.params[0].length).to.equal(2)
-			expect(response.ethCall.params[0][0]).to.equal(signedTradeTxRequest)
 			// Confirm the request and its response were saved
 			expect(logger.getOpps().length).to.gt(0)
 			await logger.flush()  // Flush data from memory to disk

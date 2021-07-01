@@ -1,5 +1,6 @@
 require('./helpers/helpers').load()
 const relaySimulator = require('./helpers/relaySimulator')
+const { provider: mainnetProvider } = require('../src/provider').ws
 const config = require('../src/config')
 const utils = require('../src/utils')
 
@@ -23,7 +24,20 @@ describe('Execution', () => {
 		// Init the bot and start the listeners
         // ! NOTE: uses live mainnet provider and real signer
         await server.init(ethers.provider)
+		const startGasPrice = ethers.utils.parseUnits('20', 'gwei')
+		const whitelistedPaths = null
+		const providerForInitialReserves = mainnetProvider
+
+		// Send bundles to local relay simulator
+		config.constants.archerBundleEndpoint = 'http://localhost:8777/sendBundle'
 		relaySimulator.startListening(ethers.provider)
+		await arbbot.init(
+			ethers.provider, 
+			botOperator, 
+			startGasPrice, 
+			whitelistedPaths, 
+			providerForInitialReserves
+		)
 	})
 
 	after(() => {
@@ -43,59 +57,56 @@ describe('Execution', () => {
 		backrunner.cleanRequestsPool()
 	})
 
-	it('Relay interaction simulation with instant opportunity', async () => {
-		// Opportunity is found and mined as soon as the trade is submitted
-		// Create transaction for uniswap trade and sign it
-		let amountIn = ethers.utils.parseUnits('100')
-		let tipAmount = ethers.utils.parseUnits('0.0001')
-		let archerswapRouter = new ethers.Contract(
-			config.constants.routers.archerswap,
-			abis['archerswapRouter'] 
-		)
-		let nextNonce = await signer.getTransactionCount()
-		let tradeTxRequest1 = await archerswapRouter.populateTransaction['swapExactETHForTokensWithTipAmount'](
-			unilikeRouters.sushiswap,
-			[
-				amountIn,
-				ZERO, 
-				[ assets.WETH, assets.ARCH ], 
-				signer.address,
-				parseInt(Date.now()/1e3)+3000, 
-			],
-			tipAmount, 
-			{ 
-				value: amountIn.add(tipAmount), 
-				gasPrice: ZERO, 
-				gasLimit: 300000,
-				nonce: nextNonce, 
-			}
-		)
-		let signedTradeTxRequest1 = await signer.signTransaction(tradeTxRequest1)
-		let archerAPIArgs = await arbbot.backrunRawRequest(signedTradeTxRequest1)
-		if (archerAPIArgs) {
-			let latestBlock = await ethers.provider.getBlock('latest')  // Miner stays the same with the fork!
-			let dispatcherBalBefore = await ethers.provider.getBalance(config.constants.dispatcher)
-			let minerBalBefore = await ethers.provider.getBalance(latestBlock.miner)
-	
-			await utils.submitBundleToArcher(archerAPIArgs)
-			
-			let dispatcherBalAfter = await ethers.provider.getBalance(config.constants.dispatcher)
-			let minerBalAfter = await ethers.provider.getBalance(latestBlock.miner)
-			let dispatcherBalNet = dispatcherBalAfter.sub(dispatcherBalBefore)
-			let minerBalNet = minerBalAfter.sub(minerBalBefore)
-	
-			// Compare state before and after arb tx
-			let minerReward = ethers.utils.parseUnits('2').mul('2')  // 2 ETH for two txs in two blocks
-			minerBalNet = minerBalNet.sub(minerReward)  // Only interested in trade contribution to the miner
-			// console.log(ethers.utils.formatUnits(dispatcherBalNet))
-			// console.log(ethers.utils.formatUnits(minerBalNet))
-			let extractedValue = minerBalNet.add(dispatcherBalNet)
-			expect(extractedValue).to.gt(ZERO)
-			console.log('Executed profit: ', ethers.utils.formatUnits(extractedValue), 'ETH')
-		} else {
-			console.log('No opportunities')
-		}
-	}).timeout(1000000)
+	// it('Relay interaction simulation with instant opportunity', async () => {
+	// 	// Opportunity is found and mined as soon as the trade is submitted
+	// 	// Create transaction for uniswap trade and sign it
+	// 	let amountIn = ethers.utils.parseUnits('1000')
+	// 	let tipAmount = ethers.utils.parseUnits('0.0001')
+	// 	let archerswapRouter = new ethers.Contract(
+	// 		config.constants.routers.archerswap,
+	// 		abis['archerswapRouter'] 
+	// 	)
+	// 	let nextNonce = await signer.getTransactionCount()
+	// 	let tradeTxRequest1 = await archerswapRouter.populateTransaction['swapExactETHForTokensWithTipAmount'](
+	// 		unilikeRouters.sushiswap,
+	// 		[
+	// 			amountIn,
+	// 			ZERO, 
+	// 			[ assets.WETH, assets.ARCH ], 
+	// 			signer.address,
+	// 			parseInt(Date.now()/1e3)+3000, 
+	// 		],
+	// 		tipAmount, 
+	// 		{ 
+	// 			value: amountIn.add(tipAmount), 
+	// 			gasPrice: ZERO, 
+	// 			gasLimit: 300000,
+	// 			nonce: nextNonce, 
+	// 		}
+	// 	)
+	// 	const blockNumber = await ethers.provider.getBlockNumber()
+	// 	let signedTradeTxRequest1 = await signer.signTransaction(tradeTxRequest1)
+	// 	let latestBlock = await ethers.provider.getBlock('latest')  // Miner stays the same with the fork!
+	// 	let dispatcherBalBefore = await ethers.provider.getBalance(config.constants.dispatcher)
+	// 	let minerBalBefore = await ethers.provider.getBalance(latestBlock.miner)
+
+	// 	let r = await arbbot.backrunRawRequest(signedTradeTxRequest1, blockNumber)
+	// 	console.log(r)
+		
+	// 	let dispatcherBalAfter = await ethers.provider.getBalance(config.constants.dispatcher)
+	// 	let minerBalAfter = await ethers.provider.getBalance(latestBlock.miner)
+	// 	let dispatcherBalNet = dispatcherBalAfter.sub(dispatcherBalBefore)
+	// 	let minerBalNet = minerBalAfter.sub(minerBalBefore)
+
+	// 	// Compare state before and after arb tx
+	// 	let minerReward = ethers.utils.parseUnits('2').mul('2')  // 2 ETH for two txs in two blocks
+	// 	minerBalNet = minerBalNet.sub(minerReward)  // Only interested in trade contribution to the miner
+	// 	console.log('Dispatcher net:', ethers.utils.formatUnits(dispatcherBalNet))
+	// 	console.log('Miner net:', ethers.utils.formatUnits(minerBalNet))
+	// 	let extractedValue = minerBalNet.add(dispatcherBalNet)
+	// 	expect(extractedValue).to.gt(ZERO)
+	// 	console.log('Executed profit: ', ethers.utils.formatUnits(extractedValue), 'ETH')
+	// }).timeout(1000000)
 
 	// it('Relay interaction simulation with delayed opportunity', async () => {
 	// 	// Opportunity is found blocks after the trade was submitted
@@ -270,7 +281,7 @@ describe('Execution', () => {
 		for (let i=0; i<maxRequests; i++) {
 			let amountIn = ethers.utils.parseEther((100+i).toString())
 			let setting = [ amountIn, assets.LINK, "sushiswap" ]  // Use the same asset to decrease the variability in latency
-			await arbbot.handleNewBackrunRequest(
+			await backrunner.handleNewBackrunRequest(
 				await getSignedArcherSwapFromETH(...setting)
 			)  // Add request to the local pool
 			// Check that the number of requests in the pool increases
@@ -283,7 +294,7 @@ describe('Execution', () => {
 				cummTime += timeExecution(findOpps)
 			}
 			executionTimes.push(cummTime/times)
-			console.log(`Time taken for ${i+1} requests: ${cummTime/times}ms`)
+			// console.log(`Time taken for ${i+1} requests: ${cummTime/times}ms`)
 		}
 		let diffs = []
 		for (let i=0; i<executionTimes.length-1; i++) {
@@ -292,7 +303,7 @@ describe('Execution', () => {
 		}
 		let [ isExponential ] = diffs.reduce((a, b) => [b>a[1] && a[0], b], [0, true])
 		console.log(`Is exponential: ${isExponential}`)
-		console.log('Diffs between neighbours:', diffs.join(', '))
+		// console.log('Diffs between neighbours:', diffs.join(', '))
 		let totNumOfExecutions = executionTimes.length*(1+executionTimes.length) / 2
 		let avgExecutionTime = executionTimes.reduce((a,b) => a+b) / totNumOfExecutions
 		console.log(`Avg time for one execution: ${avgExecutionTime}ms`)

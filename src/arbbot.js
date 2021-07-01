@@ -220,18 +220,23 @@ async function executeOpp(opp, blockNumber) {
 async function backrunRawRequest(rawTxRequest, blockNumber) {
     let request = backrunner.parseBackrunRequest(rawTxRequest)
     let opp = getOppForRequest(request)
+    let result = { 
+        blockNumber: blockNumber,
+        request: rawTxRequest,
+        response: {}, 
+        opp: {}
+    }
     if (opp) {
-        let bundle = await txManager.oppsToBundle([ opp ], blockNumber)
-        let archerApiParams = await txManager.getArcherSendBundleParams(
-            bundle, 
-            blockNumber+1
-        )
         logger.logOpps([opp], blockNumber)  // Doesnt wait for it
-        return archerApiParams
+        result['opp'] = opp
+        result['response'] = await txManager.executeBundleForOpps(
+            [ opp ], 
+            blockNumber
+        )
     } else {
         utils.verboseLog('No opportunities found')
-        return {}
     }
+    return result
 }
 
 /**
@@ -274,7 +279,6 @@ async function estimateProfitForTrade(_amountIn, _amountOutMin, tknPathAdd, exch
     if (blockNumber!='latest') {
         // Pass all fork reserves as virtual ones to use forked ones
         virtualReserves = { ..._reserves, ...virtualReserves }
-        console.log(virtualReserves)
     }
     if (amountOut.lt(amountOutMin)) { throw new Error('Insufficient amount out') }
     
@@ -305,8 +309,13 @@ function getPathsWithGasEstimate(paths) {
     })
 }
 
-function handleNewBackrunRequest(...args) {
-    return backrunner.handleNewBackrunRequest(...args)
+function handleNewBackrunRequest({rawTxRequest, blockHeight, lastBlockUpdate}) {
+    // Only backrun the request if there is enough time left
+    let delay = Date.now() - lastBlockUpdate
+    if (delay <= config.settings.arb.submissionWindow) {
+        backrunRawRequest(rawTxRequest, blockHeight)  // NOTE: Not waiting
+    }
+    return backrunner.handleNewBackrunRequest(rawTxRequest)
 }
 
 function cancelRequest(hash) {
