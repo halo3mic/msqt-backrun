@@ -178,7 +178,6 @@ async function executeOpp(opp, blockNumber) {
         let gasPrice = process.argv.includes('--zero-gas') ? ethers.constants.Zero : GAS_PRICE
         let gasCost= gasPrice.mul(path.gasAmount)
         let netProfit = grossProfit.sub(gasCost)
-        console.log(ethers.utils.formatUnits(netProfit))
         if (netProfit.gt(config.settings.arb.minProfit)) {
             return {
                 gasAmount: path.gasAmount,
