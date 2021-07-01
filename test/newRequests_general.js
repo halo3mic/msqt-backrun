@@ -63,7 +63,7 @@ describe('Handle new backrun request', () => {
 		expect(enrichedArgs.amountOutMin).to.equal(ethers.utils.parseUnits('3000'))
 	})
 
-	it('Enrich call-args with unsupported pool for two tokens should return `undefined`', () => {
+	it('Enrich call-args with unsupported pool for two tokens should throw an error', () => {
 		let callArgs = {
 			amountIn: ethers.utils.parseEther('100'),
 			amountOut: ZERO,
@@ -72,7 +72,7 @@ describe('Handle new backrun request', () => {
 			router: unilikeRouters.uniswap, 
 			deadline: parseInt(Date.now()/1e3)+300
 		}
-		expect(backrunner.enrichCallArgs(callArgs)).to.equal(undefined)
+		expect(() => backrunner.enrichCallArgs(callArgs)).to.throw('Unsupported pool')
 	})
 
 	describe('External requests to the bot', () => {
